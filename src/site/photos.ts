@@ -29,4 +29,5 @@ export const PHOTOS = {
   intl: p('international-day', 1400, 933, 'International Day', 'Younger students doing crafts at the International Day stall'),
 };
 
-export const GALLERY = [PHOTOS.team, PHOTOS.halloween, PHOTOS.queue, PHOTOS.meeting, PHOTOS.crowd, PHOTOS.intl, PHOTOS.fair, PHOTOS.sales];
+/* first photo is the big one, last is the wide one */
+export const GALLERY = [PHOTOS.team, PHOTOS.queue, PHOTOS.intl, PHOTOS.meeting, PHOTOS.fair, PHOTOS.crowd, PHOTOS.sales, PHOTOS.halloween];

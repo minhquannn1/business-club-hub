@@ -1530,22 +1530,43 @@
   margin-top: 4px;
 }
 
-/* things we've done: scrapbook wall */
+/* things we've done: one big photo, a grid of small ones, one wide one */
 .scrapbook {
-  columns: 3 250px;
-  column-gap: 32px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: clamp(190px, 19vw, 250px);
+  gap: 28px 24px;
 }
 .scrapbook .polaroid {
-  break-inside: avoid;
-  margin: 18px 0 40px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
-@media (max-width: 560px) {
+.scrapbook .polaroid img {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+}
+.scrapbook .g-0 {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+.scrapbook .g-7 {
+  grid-column: span 2;
+}
+.scrapbook .g-7 img {
+  object-position: center 78%;
+}
+@media (max-width: 760px) {
   .scrapbook {
-    columns: 2;
-    column-gap: 16px;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: clamp(150px, 42vw, 220px);
+    gap: 20px 14px;
   }
-  .scrapbook .polaroid {
-    margin: 12px 0 26px;
+  .scrapbook .g-0 {
+    grid-row: span 1;
   }
 }
 

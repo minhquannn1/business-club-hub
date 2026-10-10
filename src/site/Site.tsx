@@ -230,7 +230,7 @@ export function SiteHome() {
             </div>
             <div className="scrapbook">
               {GALLERY.map((ph, i) => (
-                <Polaroid key={ph.src} photo={ph} small tilt={[-2, 1.6, -1, 2.2, -1.8, 1.2, -0.8][i % 7]} tape={i % 2 === 0} />
+                <Polaroid key={ph.src} photo={ph} small={i !== 0 && i !== GALLERY.length - 1} className={`g-${i}`} tilt={[-1.2, 1.4, -1, 1.6, -1.4, 1, -0.8, 0.8][i % 8]} tape={i === 0 || i === 3 || i === GALLERY.length - 1} />
               ))}
             </div>
 
