@@ -14,12 +14,13 @@ export function demoData() {
     { id: 'an@school.vn', email: 'an@school.vn', name: 'Phạm Bảo An', role: 'exec', title: 'Treasurer', team: 'Finance', uid: 'u3' },
     { id: 'minh@school.vn', email: 'minh@school.vn', name: 'Lê Đức Minh', role: 'member', team: 'Marketing', uid: 'u4' },
     { id: 'chi@school.vn', email: 'chi@school.vn', name: 'Võ Mai Chi', role: 'member', team: 'Content' },
+    { id: 'khoa@school.vn', email: 'khoa@school.vn', name: 'Đỗ Minh Khoa', role: 'guest', uid: 'u6' },
   ];
   const base = { description: '', goals: '', teamEmails: [] as string[], location: '', isPublic: false, publicBlurb: '', order: 0, createdAt: now, createdBy: OWNER_EMAIL, updatedAt: now };
   const projects: Project[] = [
     { ...base, id: 'bw', title: 'Business Week', kind: 'event', summary: 'Four lunchtime activities and a Wednesday assembly talk.', stage: 'planning', leadEmail: OWNER_EMAIL, teamEmails: ['an@school.vn', 'minh@school.vn'], startDate: d(9), endDate: d(13), location: 'Canteen and main hall', color: '#2F6FDE', budgetPlanned: 3_000_000, isPublic: true, goals: '200 students take part across the week.\nAt least 3 teachers judge the pitch contest.' },
     { ...base, id: 'bake', title: 'Bake sale for charity', kind: 'event', summary: 'Sell homemade snacks at break time.', stage: 'idea', leadEmail: 'chi@school.vn', startDate: '', endDate: '', color: '#C2410C', budgetPlanned: 0 },
-    { ...base, id: 'wh', title: 'Wharton Investment Competition 2026-27', kind: 'competition', summary: 'Teams of 4 to 6 manage a virtual portfolio for a client case and write up the strategy.', stage: 'active', leadEmail: OWNER_EMAIL, teamEmails: ['linh@school.vn', 'an@school.vn', 'minh@school.vn'], startDate: '2026-09-28', endDate: '2026-12-04', color: '#1E3FD8', budgetPlanned: 0, organizer: 'Wharton Global Youth Program', rounds: [
+    { ...base, id: 'wh', title: 'Wharton Investment Competition 2026-27', kind: 'competition', summary: 'Teams of 4 to 6 manage a virtual portfolio for a client case and write up the strategy.', stage: 'active', leadEmail: OWNER_EMAIL, teamEmails: ['linh@school.vn', 'an@school.vn', 'khoa@school.vn'], startDate: '2026-09-28', endDate: '2026-12-04', color: '#1E3FD8', budgetPlanned: 0, organizer: 'Wharton Global Youth Program', rounds: [
       { id: 'r1', name: 'Trading starts on WInS', date: '2026-09-28', done: true },
       { id: 'r2', name: 'Official team roster', date: '2026-10-09', done: true },
       { id: 'r3', name: 'Trading Notes Analysis', date: '2026-10-23' },
@@ -35,6 +36,7 @@ export function demoData() {
   const t = (id: string, title: string, projectId: string, who: string, due: string, status: Task['status'] = 'todo', priority: Task['priority'] = 'med'): Task => ({ id, title, notes: '', projectId, assigneeEmail: who, dueDate: due, priority, status, createdBy: OWNER_EMAIL, createdAt: now, updatedAt: now });
   const tasks: Task[] = [
     t('t1', 'Book the main hall for Wednesday assembly', 'bw', OWNER_EMAIL, d(-1), 'todo', 'high'),
+    t('tk', 'Write the 3 Trading Notes reflections', 'wh', 'khoa@school.vn', d(5)),
     t('t2', 'Design posters for Business Week', 'bw', 'minh@school.vn', d(2), 'doing'),
     t('t3', 'Email three teachers to judge the pitch contest', 'bw', OWNER_EMAIL, d(0)),
     t('t4', 'Write the assembly script', 'bw', 'an@school.vn', d(6)),

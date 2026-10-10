@@ -358,6 +358,10 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.ov-grid.ov-single {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 860px;
+}
 .ov-stack {
   display: grid;
   gap: 20px;

@@ -175,20 +175,23 @@ export async function deleteMeeting(m: Meeting) {
 
 async function syncPublicMember(m: Member, order: number) {
   const ref = doc(db, 'publicTeam', m.id.replace(/[^a-z0-9]/g, '_'));
-  if (m.showOnSite && m.name) {
+  // guests are not in the club, so they never appear on the website
+  if (m.showOnSite && m.name && m.role !== 'guest') {
     const pm: Omit<PublicMember, 'id'> = { name: m.name, title: m.title ?? '', team: m.team ?? '', photoURL: m.sitePhoto || m.photoURL || '', bio: m.bio ?? '', order };
     await setDoc(ref, pm);
   } else await deleteDoc(ref).catch(() => {});
 }
 
-export async function inviteMember(m: Omit<Member, 'id'>): Promise<string> {
+export async function inviteMember(m: Omit<Member, 'id'>, projects: Project[] = []): Promise<string> {
   const id = m.email.trim().toLowerCase();
   const ref = doc(db, 'members', id);
   const existing = await getDoc(ref).catch(() => null);
   if (existing?.exists()) throw new Error(`${id} is already on the member list.`);
-  await setDoc(ref, { ...m, email: id, joinedAt: Date.now() });
-  await syncPublicMember({ ...m, id }, m.role === 'exec' ? 0 : 1).catch(() => {});
-  log('invited', 'member', id, m.name || id);
+  await setDoc(ref, { ...m, email: id, joinedAt: Date.now(), ...(m.role === 'guest' ? { showOnSite: false } : {}) });
+  if (m.role !== 'guest') await syncPublicMember({ ...m, id }, m.role === 'exec' ? 0 : 1).catch(() => {});
+  // put them on the projects they were added for
+  for (const p of projects) if (!p.teamEmails?.includes(id) && p.leadEmail !== id) await updateProject(p, { teamEmails: [...(p.teamEmails ?? []), id] }, '');
+  log(m.role === 'guest' ? 'added guest' : 'invited', 'member', id, m.name || id, projects.length ? `to ${projects.map((p) => p.title).join(', ')}` : '');
   return id;
 }
 

@@ -11,6 +11,7 @@ import {
   query,
   setDoc,
   updateDoc,
+  where,
 } from 'firebase/firestore';
 import { auth, db, googleProvider, firebaseConfigured } from './firebase';
 import { OWNER_EMAIL, DEFAULT_SITE, LEDGER_CATEGORIES } from './constants';
@@ -27,6 +28,8 @@ interface Store {
   myEmail: string;
   isExec: boolean;
   isOwner: boolean;
+  /** outside the club: sees only their projects, their tasks and meetings they attended */
+  isGuest: boolean;
   ready: boolean;
   members: Member[];
   memberMap: Map<string, Member>;
@@ -56,6 +59,9 @@ export function useStore(): Store {
 const emailKey = (e: string | null | undefined) => (e ?? '').trim().toLowerCase();
 
 const DEMO = import.meta.env.DEV && typeof window !== 'undefined' && /[?&]demo/.test(window.location.search + (sessionStorage.getItem('demo') ? '&demo' : ''));
+// ?demo=guest previews the workspace as a guest
+const DEMO_GUEST = DEMO && (/[?&]demo=guest/.test(window.location.search) || sessionStorage.getItem('demo') === 'guest');
+const DEMO_GUEST_EMAIL = 'khoa@school.vn';
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -81,10 +87,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // Local UI check mode (dev server only)
   useEffect(() => {
     if (!DEMO) return;
-    sessionStorage.setItem('demo', '1');
+    sessionStorage.setItem('demo', DEMO_GUEST ? 'guest' : '1');
     import('./demo').then(({ demoData }) => {
       const dd = demoData();
       setMembers(dd.members);
+      if (DEMO_GUEST) {
+        const g = DEMO_GUEST_EMAIL;
+        setMe(dd.members.find((m) => m.id === g) ?? null);
+        setProjects(dd.projects.filter((p) => p.leadEmail === g || p.teamEmails.includes(g)));
+        setTasks(dd.tasks.filter((t) => t.assigneeEmail === g));
+        setMeetings(dd.meetings.filter((m) => m.attendees.includes(g)));
+        setLoaded({ members: true, projects: true, tasks: true, meetings: true, sheets: true, rows: true });
+        setError('');
+        setAccess('ok');
+        return;
+      }
       setMe(dd.members[0]);
       setProjects(dd.projects);
       setTasks(dd.tasks);
@@ -183,6 +200,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   // Workspace data
+  const guest = me?.role === 'guest' && emailKey(user?.email) !== OWNER_EMAIL;
   useEffect(() => {
     if (access !== 'ok' || DEMO) return;
     const subs: (() => void)[] = [];
@@ -202,6 +220,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       );
     };
     sub<Member>('members', collection(db, 'members'), setMembers);
+    if (guest) {
+      // guests may only ask for what is theirs
+      const me = emailKey(user?.email);
+      let byTeam: Project[] = [];
+      let byLead: Project[] = [];
+      const merge = () => setProjects([...new Map([...byTeam, ...byLead].map((p) => [p.id, p])).values()]);
+      sub<Project>('projects', query(collection(db, 'projects'), where('teamEmails', 'array-contains', me)), (v) => ((byTeam = v), merge()));
+      sub<Project>('projectsLed', query(collection(db, 'projects'), where('leadEmail', '==', me)), (v) => ((byLead = v), merge()));
+      sub<Task>('tasks', query(collection(db, 'tasks'), where('assigneeEmail', '==', me)), setTasks);
+      sub<Meeting>('meetings', query(collection(db, 'meetings'), where('attendees', 'array-contains', me)), setMeetings);
+      setLoaded((l) => ({ ...l, sheets: true, rows: true }));
+      return () => subs.forEach((u) => u());
+    }
     sub<Project>('projects', collection(db, 'projects'), setProjects);
     sub<Task>('tasks', collection(db, 'tasks'), setTasks);
     sub<Meeting>('meetings', collection(db, 'meetings'), setMeetings);
@@ -224,7 +255,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ),
     );
     return () => subs.forEach((u) => u());
-  }, [access]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [access, guest]);
 
   // Site content is public; read it everywhere
   useEffect(() => {
@@ -241,16 +273,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Store>(() => {
-    const myEmail = DEMO ? OWNER_EMAIL : emailKey(user?.email);
+    const myEmail = DEMO ? (DEMO_GUEST ? DEMO_GUEST_EMAIL : OWNER_EMAIL) : emailKey(user?.email);
     const isOwner = myEmail === OWNER_EMAIL;
     const isExec = isOwner || me?.role === 'exec';
+    const isGuest = !isOwner && me?.role === 'guest';
     const rows = new Map<string, Row[]>();
     for (const { sheetId, row } of rowsFlat) {
       if (!rows.has(sheetId)) rows.set(sheetId, []);
       rows.get(sheetId)!.push(row);
     }
     rows.forEach((list) => list.sort((a, b) => a.order - b.order));
-    const sortedMembers = [...members].sort((a, b) => (a.role === b.role ? (a.name || a.email).localeCompare(b.name || b.email) : a.role === 'exec' ? -1 : 1));
+    const rank = (r: string) => (r === 'exec' ? 0 : r === 'guest' ? 2 : 1);
+    const sortedMembers = [...members].sort((a, b) => rank(a.role) - rank(b.role) || (a.name || a.email).localeCompare(b.name || b.email));
     const sortedProjects = [...projects].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (b.createdAt ?? 0) - (a.createdAt ?? 0));
     return {
       access,
@@ -260,6 +294,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       myEmail,
       isExec,
       isOwner,
+      isGuest,
       ready: ['members', 'projects', 'tasks', 'meetings', 'sheets', 'rows'].every((k) => loaded[k]),
       members: sortedMembers,
       memberMap: new Map(members.map((m) => [m.id, m])),

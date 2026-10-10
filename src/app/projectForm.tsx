@@ -119,6 +119,7 @@ export function ProjectForm({ project, stage, kind, onClose, onCreated }: { proj
             {store.members.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name || m.email}
+                {m.role === 'guest' ? ' (guest)' : ''}
               </option>
             ))}
           </select>
@@ -160,6 +161,7 @@ export function ProjectForm({ project, stage, kind, onClose, onCreated }: { proj
                   >
                     <Avatar member={m} size={22} />
                     {m.name || m.email}
+                    {m.role === 'guest' && <span className="faint"> (guest)</span>}
                   </button>
                 );
               })}

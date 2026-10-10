@@ -4,7 +4,7 @@ import { addDays, format } from 'date-fns';
 import { CheckSquare, FolderKanban, Megaphone, Plus, Smartphone, UserRound } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { fmtRange, money, todayISO } from '../lib/format';
-import { STAGE_LABEL } from '../lib/constants';
+import { COMP_STAGE_LABEL, STAGE_LABEL } from '../lib/constants';
 import { useLedger, projectMoney } from '../lib/workbook';
 import type { Task } from '../lib/types';
 import { Empty } from '../components/ui';
@@ -42,7 +42,7 @@ export function Overview() {
   const overdue = store.tasks.filter((t) => t.status !== 'done' && t.dueDate && t.dueDate < today);
   const running = store.projects.filter((p) => p.stage === 'active' || p.stage === 'planning');
   const upcoming = store.projects
-    .filter((p) => p.stage !== 'done' && ((p.startDate && p.startDate <= soon && (p.endDate || p.startDate) >= today) || p.stage === 'active'))
+    .filter((p) => p.stage !== 'done' && (store.isGuest || (p.startDate && p.startDate <= soon && (p.endDate || p.startDate) >= today) || p.stage === 'active'))
     .sort((a, b) => (a.startDate || '0').localeCompare(b.startDate || '0'));
   const budgetWatch = store.projects
     .filter((p) => p.budgetPlanned > 0 && p.stage !== 'done')
@@ -65,9 +65,11 @@ export function Overview() {
           <button className="btn" onClick={() => setOpen('new')}>
             <Plus /> Task
           </button>
-          <Link to="/app/meetings/new" className="btn">
-            <Plus /> Meeting notes
-          </Link>
+          {!store.isGuest && (
+            <Link to="/app/meetings/new" className="btn">
+              <Plus /> Meeting notes
+            </Link>
+          )}
           {store.isExec && (
             <button className="btn" onClick={() => setAnnouncing(true)}>
               <Megaphone /> Announce
@@ -79,6 +81,7 @@ export function Overview() {
       <AnnouncementsPanel />
       <WelcomeCard />
 
+      {!store.isGuest && (
       <div className="figures">
         <Link to="/app/tasks" className="figure">
           <span className="val num">{myTasks.length}</span>
@@ -97,8 +100,9 @@ export function Overview() {
           <span className="lbl">Club balance</span>
         </Link>
       </div>
+      )}
 
-      <div className="ov-grid">
+      <div className={`ov-grid ${store.isGuest ? 'ov-single' : ''}`}>
         <div className="ov-stack">
           <section className="panel">
             <div className="panel-head">
@@ -116,7 +120,7 @@ export function Overview() {
 
           <section className="panel">
             <div className="panel-head">
-              <h2 className="h3">Coming up in the next 30 days</h2>
+              <h2 className="h3">{store.isGuest ? 'Your projects' : 'Coming up in the next 30 days'}</h2>
               <Link to="/app/projects" className="btn btn-sm btn-ghost">
                 All projects
               </Link>
@@ -129,7 +133,7 @@ export function Overview() {
                   const prog = taskProgress(store.tasks, p.id);
                   return (
                     <li key={p.id}>
-                      <Link to={`/app/projects/${p.id}`} className="row-link">
+                      <Link to={`/app/${p.kind === 'competition' ? 'competitions' : 'projects'}/${p.id}`} className="row-link">
                         <span className="dot" style={{ ['--c' as string]: p.color }} />
                         <span className="row-main">
                           <span className="title">{p.title}</span>
@@ -146,7 +150,7 @@ export function Overview() {
                             {prog.done}/{prog.total} tasks
                           </span>
                         )}
-                        <span className="chip">{STAGE_LABEL[p.stage]}</span>
+                        <span className="chip">{(p.kind === 'competition' ? COMP_STAGE_LABEL : STAGE_LABEL)[p.stage]}</span>
                       </Link>
                     </li>
                   );
@@ -156,6 +160,7 @@ export function Overview() {
           </section>
         </div>
 
+        {!store.isGuest && (
         <div className="ov-stack">
           <SchoolCalendarPanel />
           <QuickLinksPanel />
@@ -202,6 +207,7 @@ export function Overview() {
             )}
           </section>
         </div>
+        )}
       </div>
       {open && <TaskForm task={open === 'new' ? undefined : open} onClose={() => setOpen(null)} />}
       {announcing && <AnnouncementModal onClose={() => setAnnouncing(false)} />}
@@ -234,7 +240,9 @@ function WelcomeCard() {
   };
   const steps = [
     { icon: <CheckSquare />, title: 'Check your tasks', text: "Anything with your name on it is in Tasks. Tick it off when it's done.", to: '/app/tasks' },
-    { icon: <FolderKanban />, title: "See what's coming up", text: 'Every booth and event is in Projects, with its plan and budget.', to: '/app/projects' },
+    store.isGuest
+      ? { icon: <FolderKanban />, title: 'Your projects', text: 'The projects you help with are under Projects and Competitions, with their dates and plan.', to: '/app/projects' }
+      : { icon: <FolderKanban />, title: "See what's coming up", text: 'Every booth and event is in Projects, with its plan and budget.', to: '/app/projects' },
     { icon: <UserRound />, title: 'Set up your profile', text: 'Add a photo and choose which emails you get.', onClick: () => window.dispatchEvent(new Event('open-profile')) },
     { icon: <Smartphone />, title: 'Put it on your phone', text: 'In your browser menu, tap Add to Home Screen. It opens like an app.' },
   ];

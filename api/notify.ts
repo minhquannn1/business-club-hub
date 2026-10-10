@@ -35,6 +35,7 @@ export default async function handler(req: Req, res: Res) {
     const meMember = members.get(me);
     if (!meMember && me !== OWNER_EMAIL) throw new HttpError(403, 'You are not on the member list');
     const isExec = me === OWNER_EMAIL || meMember?.role === 'exec';
+    const isGuest = me !== OWNER_EMAIL && meMember?.role === 'guest';
     const body = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {}) as Body;
     const b = await brand();
     const nameOf = (email: string) => members.get(email)?.name || email.split('@')[0];
@@ -84,7 +85,9 @@ export default async function handler(req: Req, res: Res) {
           return;
         }
         const audience = a.audience || 'all';
+        // guests are not in the club, so club announcements never go to them
         const to = [...members.values()]
+          .filter((m) => m.role !== 'guest')
           .filter((m) => (audience === 'all' ? true : audience === 'exec' ? m.role === 'exec' : audience.startsWith('team:') ? m.team === audience.slice(5) : false))
           .map((m) => m.email);
         if (!to.length) throw new HttpError(400, 'Nobody is in that group');
@@ -102,7 +105,7 @@ export default async function handler(req: Req, res: Res) {
         const m = snap.data() as MailMeeting & { attendees?: string[]; createdBy?: string };
         let lead = '';
         if (m.projectId) lead = ((await db().doc(`projects/${m.projectId}`).get()).get('leadEmail') as string) || '';
-        if (!isExec && m.createdBy !== me && lead !== me) throw new HttpError(403, 'Only whoever wrote the notes, the project lead or the exec team can email them');
+        if (isGuest || (!isExec && m.createdBy !== me && lead !== me)) throw new HttpError(403, 'Only whoever wrote the notes, the project lead or the exec team can email them');
         const to = [...new Set([...(m.attendees || []), ...(m.actionItems || []).map((i) => i.assigneeEmail)].filter((e) => e && members.has(e)))];
         if (!to.length) throw new HttpError(400, 'Add who attended first');
         const projects = await projectTitles();

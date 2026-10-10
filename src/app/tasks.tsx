@@ -292,15 +292,17 @@ export function TasksPage() {
         }
       />
       <div className="toolbar">
-        <Seg
-          label="Whose tasks"
-          value={scope}
-          onChange={setScope}
-          options={[
-            { key: 'mine', label: 'Mine' },
-            { key: 'all', label: 'Everyone' },
-          ]}
-        />
+        {!store.isGuest && (
+          <Seg
+            label="Whose tasks"
+            value={scope}
+            onChange={setScope}
+            options={[
+              { key: 'mine', label: 'Mine' },
+              { key: 'all', label: 'Everyone' },
+            ]}
+          />
+        )}
         <select className="select" value={project} onChange={(e) => setProject(e.target.value)} aria-label="Filter by project">
           <option value="">All projects</option>
           <option value="_none">No project</option>

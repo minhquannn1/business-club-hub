@@ -25,9 +25,11 @@ export function MeetingsPage() {
         title="Meetings"
         sub="Notes, decisions and who's doing what. Action items turn into tasks."
         actions={
-          <Link to="/app/meetings/new" className="btn btn-primary">
-            <Plus /> New notes
-          </Link>
+          !store.isGuest && (
+            <Link to="/app/meetings/new" className="btn btn-primary">
+              <Plus /> New notes
+            </Link>
+          )
         }
       />
       <div className="toolbar">

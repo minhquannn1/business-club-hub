@@ -58,8 +58,8 @@ export function ProjectDetail() {
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: 'overview', label: 'Overview' },
-    { key: 'tasks', label: 'Tasks', count: tasks.filter((t) => t.status !== 'done').length },
-    { key: 'money', label: 'Money' },
+    { key: 'tasks', label: store.isGuest ? 'My tasks' : 'Tasks', count: tasks.filter((t) => t.status !== 'done').length },
+    ...(store.isGuest ? [] : [{ key: 'money' as Tab, label: 'Money' }]),
     { key: 'meetings', label: 'Meetings', count: meetings.length },
     { key: 'review', label: 'Review' },
   ];
@@ -358,6 +358,7 @@ export function ProjectDetail() {
             </div>
           </section>
           <ProjectLinks project={p} canEdit={canEdit} />
+          {!store.isGuest && (
           <section className="panel">
             <div className="panel-head">
               <h2 className="h3" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -395,6 +396,7 @@ export function ProjectDetail() {
               )}
             </div>
           </section>
+          )}
         </aside>
       </div>
 

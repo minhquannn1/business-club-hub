@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Activity as ActivityIcon,
   CheckSquare,
@@ -53,7 +53,7 @@ function applyTheme(t: 'light' | 'dark' | 'system') {
 
 export function Shell() {
   const store = useStore();
-  const { me, myEmail, site, isExec, tasks, signOut } = store;
+  const { me, myEmail, site, isExec, isGuest, tasks, signOut } = store;
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
   const [profile, setProfile] = useState(false);
@@ -85,15 +85,15 @@ export function Shell() {
 
   const myOpen = useMemo(() => tasks.filter((t) => t.assigneeEmail === myEmail && t.status !== 'done').length, [tasks, myEmail]);
 
-  const links: { to: string; label: string; icon: ReactNode; badge?: number; end?: boolean; exec?: boolean }[] = [
+  const links: { to: string; label: string; icon: ReactNode; badge?: number; end?: boolean; exec?: boolean; club?: boolean }[] = [
     { to: '/app', label: 'Overview', icon: <LayoutDashboard />, end: true },
     { to: '/app/projects', label: 'Projects', icon: <FolderKanban /> },
     { to: '/app/competitions', label: 'Competitions', icon: <Trophy /> },
     { to: '/app/tasks', label: 'Tasks', icon: <CheckSquare />, badge: myOpen },
     { to: '/app/meetings', label: 'Meetings', icon: <NotebookPen /> },
-    { to: '/app/finance', label: 'Finance', icon: <Wallet /> },
-    { to: '/app/members', label: 'Members', icon: <Users /> },
-    { to: '/app/activity', label: 'Activity', icon: <ActivityIcon /> },
+    { to: '/app/finance', label: 'Finance', icon: <Wallet />, club: true },
+    { to: '/app/members', label: 'Members', icon: <Users />, club: true },
+    { to: '/app/activity', label: 'Activity', icon: <ActivityIcon />, club: true },
     { to: '/app/website', label: 'Website', icon: <Globe />, exec: true },
   ];
 
@@ -129,7 +129,7 @@ export function Shell() {
       </button>
       <nav className="side-nav" aria-label="Workspace">
         {links
-          .filter((l) => !l.exec || isExec)
+          .filter((l) => (!l.exec || isExec) && (!l.club || !isGuest))
           .map((l) => (
             <NavLink key={l.to} to={l.to} end={l.end} className="side-link">
               {l.icon}
@@ -142,7 +142,7 @@ export function Shell() {
         <Avatar member={me} email={myEmail} size={32} />
         <span className="side-user-text">
           <strong className="ellipsis">{me?.name || myEmail}</strong>
-          <span className="ellipsis">{isExec ? me?.title || 'Exec team' : me?.title || 'Member'}</span>
+          <span className="ellipsis">{isGuest ? 'Guest' : isExec ? me?.title || 'Exec team' : me?.title || 'Member'}</span>
         </span>
       </button>
     </>
@@ -164,7 +164,7 @@ export function Shell() {
             <Search />
           </button>
         </div>
-        <Outlet />
+        {isGuest && /^\/app\/(finance|members|activity|website|import)/.test(loc.pathname) ? <Navigate to="/app" replace /> : <Outlet />}
       </div>
       <nav className="tabbar" aria-label="Quick navigation">
         <NavLink to="/app" end className="tab">
@@ -194,7 +194,7 @@ export function Shell() {
             <span className="sheet-grip" aria-hidden="true" />
             {[
               { key: 'task', icon: <CheckSquare />, label: 'Task', hint: 'Something someone needs to do', show: true },
-              { key: 'notes', icon: <NotebookPen />, label: 'Meeting notes', hint: 'What was decided and who does what', show: true },
+              { key: 'notes', icon: <NotebookPen />, label: 'Meeting notes', hint: 'What was decided and who does what', show: !isGuest },
               { key: 'expense', icon: <ReceiptText />, label: 'Money spent or received', hint: 'Goes into the club ledger', show: isExec },
               { key: 'announce', icon: <Megaphone />, label: 'Announcement', hint: 'Shows on everyone\'s Overview, can be emailed', show: isExec },
             ]

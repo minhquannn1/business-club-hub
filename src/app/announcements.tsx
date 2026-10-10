@@ -69,8 +69,8 @@ export function AnnouncementModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     emailReady().then(setReady);
   }, []);
-  const teams = useMemo(() => [...new Set(store.members.map((m) => m.team?.trim()).filter(Boolean) as string[])].sort(), [store.members]);
-  const count = store.members.filter((m) => (audience === 'all' ? true : audience === 'exec' ? m.role === 'exec' : m.team === audience.slice(5))).length;
+  const teams = useMemo(() => [...new Set(store.members.filter((m) => m.role !== 'guest').map((m) => m.team?.trim()).filter(Boolean) as string[])].sort(), [store.members]);
+  const count = store.members.filter((m) => m.role !== 'guest' && (audience === 'all' ? true : audience === 'exec' ? m.role === 'exec' : m.team === audience.slice(5))).length;
   const willEmail = email && ready === true;
 
   const post = async () => {

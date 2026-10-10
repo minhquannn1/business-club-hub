@@ -31,7 +31,11 @@ export function MembersPage() {
     return (!team || m.team === team) && (!s || m.name?.toLowerCase().includes(s) || m.email.includes(s) || m.title?.toLowerCase().includes(s));
   });
   const execs = list.filter((m) => m.role === 'exec');
-  const others = list.filter((m) => m.role !== 'exec');
+  const others = list.filter((m) => m.role === 'member');
+  const guests = list.filter((m) => m.role === 'guest');
+  const clubCount = store.members.filter((m) => m.role !== 'guest').length;
+  const guestCount = store.members.length - clubCount;
+  const projectsOf = (email: string) => store.projects.filter((p) => p.stage !== 'done' && (p.leadEmail === email || p.teamEmails?.includes(email)));
 
   const card = (m: Member) => {
     const openTasks = store.tasks.filter((t) => t.assigneeEmail === m.id && t.status !== 'done').length;
@@ -41,7 +45,11 @@ export function MembersPage() {
         <Avatar member={m} size={44} />
         <span className="info">
           <strong className="ellipsis">{m.name || m.email.split('@')[0]}</strong>
-          <span className="small muted ellipsis">{[m.title, m.team].filter(Boolean).join(', ') || (m.role === 'exec' ? 'Exec team' : 'Member')}</span>
+          <span className="small muted ellipsis">
+            {m.role === 'guest'
+              ? `Guest on ${projectsOf(m.id).map((p) => p.title).join(', ') || 'no project yet'}`
+              : [m.title, m.team].filter(Boolean).join(', ') || (m.role === 'exec' ? 'Exec team' : 'Member')}
+          </span>
           <span className="load">
             <span>
               {openTasks} open {openTasks === 1 ? 'task' : 'tasks'}
@@ -58,7 +66,7 @@ export function MembersPage() {
     <div className="page">
       <PageHead
         title="Members"
-        sub={`${store.members.length} ${store.members.length === 1 ? 'person' : 'people'}, ${store.members.filter((m) => m.role === 'exec').length} on the exec team`}
+        sub={`${clubCount} in the club, ${store.members.filter((m) => m.role === 'exec').length} on the exec team${guestCount ? `, ${guestCount} ${guestCount === 1 ? 'guest' : 'guests'}` : ''}`}
         actions={
           store.isExec && (
             <button className="btn btn-primary" onClick={() => setInviting(true)}>
@@ -99,6 +107,15 @@ export function MembersPage() {
                 Members
               </h2>
               <div className="member-grid">{others.map(card)}</div>
+            </section>
+          )}
+          {guests.length > 0 && (
+            <section>
+              <h2 className="h3">Guests</h2>
+              <p className="small muted" style={{ margin: '2px 0 10px' }}>
+                Not in the club. They only see the projects they are on, their own tasks and the meetings they attended.
+              </p>
+              <div className="member-grid">{guests.map(card)}</div>
             </section>
           )}
           {store.members.length <= 1 && store.isExec && (
@@ -150,6 +167,7 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
     const patch: Partial<Member> = asExec ? { ...f, name: f.name.trim() } : { name: f.name.trim(), bio: f.bio, showOnSite: f.showOnSite, emailOff: f.emailOff };
     if (sitePhoto !== (member.sitePhoto ?? '')) patch.sitePhoto = sitePhoto;
     if (isOwnerRow) patch.role = 'exec';
+    if (patch.role === 'guest') patch.showOnSite = false;
     const ok = await run(async () => {
       await updateMember(member, patch, !!self && !asExec);
       return true;
@@ -206,7 +224,18 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
         <Field label="Name">
           <input className="input" value={f.name} onChange={(e) => set('name', e.target.value)} disabled={!canEdit} />
         </Field>
-        <Field label="Role" hint={isOwnerRow ? 'The club owner is always on the exec team.' : asExec ? 'Exec members can edit everything, including money.' : undefined}>
+        <Field
+          label="Role"
+          hint={
+            isOwnerRow
+              ? 'The club owner is always on the exec team.'
+              : f.role === 'guest'
+                ? 'Not in the club. Only sees the projects they are on, their own tasks and meetings they attended.'
+                : asExec
+                  ? 'Exec members can edit everything, including money.'
+                  : undefined
+          }
+        >
           <Seg<Role>
             label="Role"
             value={f.role}
@@ -214,6 +243,7 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
             options={[
               { key: 'member', label: 'Member' },
               { key: 'exec', label: 'Exec' },
+              { key: 'guest', label: 'Guest' },
             ]}
           />
         </Field>
@@ -275,10 +305,12 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
           </div>
           <small className="hint">Cropped to a square for the team section. Without one, the Google account photo is used.</small>
         </div>
-        <label className="check full">
-          <input type="checkbox" checked={f.showOnSite} onChange={(e) => set('showOnSite', e.target.checked)} disabled={!canEdit} />
-          List on the public website's team section (name, title, photo and bio)
-        </label>
+        {f.role !== 'guest' && (
+          <label className="check full">
+            <input type="checkbox" checked={f.showOnSite} onChange={(e) => set('showOnSite', e.target.checked)} disabled={!canEdit} />
+            List on the public website's team section (name, title, photo and bio)
+          </label>
+        )}
         <div className="field full">
           <label className="check">
             <input type="checkbox" checked={!f.emailOff} onChange={(e) => set('emailOff', !e.target.checked)} disabled={!canEdit} />
@@ -373,7 +405,10 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
   const [role, setRole] = useState<Role>('member');
   const [team, setTeam] = useState('');
   const [title, setTitle] = useState('');
+  const [onProjects, setOnProjects] = useState<string[]>([]);
   const [done, setDone] = useState<string[] | null>(null);
+  const openProjects = store.projects.filter((p) => p.stage !== 'done');
+  const isGuest = role === 'guest';
   const parsed = emails
     .split(/[\s,;]+/)
     .map((e) => e.trim().toLowerCase())
@@ -387,7 +422,8 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
     const added: string[] = [];
     for (const email of valid) {
       const ok = await run(async () => {
-        await inviteMember({ email, name: '', role, title: parsed.length === 1 ? title : '', team, showOnSite: role === 'exec' });
+        const projects = openProjects.filter((p) => onProjects.includes(p.id));
+        await inviteMember({ email, name: '', role, title: isGuest ? '' : parsed.length === 1 ? title : '', team: isGuest ? '' : team, showOnSite: role === 'exec' }, projects);
         return true;
       });
       if (ok) added.push(email);
@@ -426,15 +462,15 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
 
   return (
     <Modal
-      title="Add members"
+      title={isGuest ? 'Add guests' : 'Add members'}
       onClose={onClose}
       footer={
         <>
           <button className="btn" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn-primary" disabled={!valid.length || invalid.length > 0} onClick={save}>
-            Add {valid.length > 1 ? `${valid.length} people` : 'member'}
+          <button className="btn btn-primary" disabled={!valid.length || invalid.length > 0 || (isGuest && !onProjects.length)} onClick={save}>
+            Add {valid.length > 1 ? `${valid.length} people` : isGuest ? 'guest' : 'member'}
           </button>
         </>
       }
@@ -463,9 +499,34 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
             options={[
               { key: 'member', label: 'Member' },
               { key: 'exec', label: 'Exec' },
+              { key: 'guest', label: 'Guest' },
             ]}
           />
         </Field>
+        {isGuest ? (
+          <div className="field full">
+            <span>Projects they help with</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {openProjects.map((p) => {
+                const on = onProjects.includes(p.id);
+                return (
+                  <button
+                    type="button"
+                    key={p.id}
+                    className="chip"
+                    aria-pressed={on}
+                    onClick={() => setOnProjects((l) => (on ? l.filter((x) => x !== p.id) : [...l, p.id]))}
+                    style={{ height: 30, cursor: 'pointer', border: `1px solid ${on ? 'var(--ink)' : 'transparent'}`, color: on ? 'var(--ink)' : undefined }}
+                  >
+                    <span className="dot" style={{ ['--c' as string]: p.color }} />
+                    {p.title}
+                  </button>
+                );
+              })}
+            </div>
+            <small className="hint">Guests are not club members. They only see these projects, their own tasks and the meetings they attended. They are not on the website or in club announcements.</small>
+          </div>
+        ) : (
         <Field label="Team">
           <select className="select" value={team} onChange={(e) => setTeam(e.target.value)}>
             <option value="">None yet</option>
@@ -474,7 +535,8 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
             ))}
           </select>
         </Field>
-        {parsed.length <= 1 && (
+        )}
+        {parsed.length <= 1 && !isGuest && (
           <Field label="Title" className="full">
             <input className="input" list="invite-role-options" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Treasurer" />
             <datalist id="invite-role-options">

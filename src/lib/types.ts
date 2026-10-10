@@ -1,4 +1,5 @@
-export type Role = 'exec' | 'member';
+/** guest: outside the club, only on certain projects */
+export type Role = 'exec' | 'member' | 'guest';
 export type Stage = 'idea' | 'planning' | 'active' | 'done';
 export type TaskStatus = 'todo' | 'doing' | 'done';
 export type Priority = 'low' | 'med' | 'high';

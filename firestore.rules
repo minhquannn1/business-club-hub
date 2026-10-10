@@ -1,8 +1,10 @@
 rules_version = '2';
 
 // Business Club Hub security rules.
-// Only people on the member list can read workspace data. Exec members can change everything;
-// project leads can change their own project and its tasks; everyone else can tick off their own tasks.
+// Club members (role exec or member) can read the workspace. Exec members can change everything;
+// project leads can change their own project and its tasks; everyone can tick off their own tasks.
+// Guests (role guest) are people outside the club who help on certain projects: they only see
+// the projects they are on, the tasks given to them and the meetings they attended.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -18,16 +20,34 @@ service cloud.firestore {
     function memberPath() {
       return /databases/$(database)/documents/members/$(myEmail());
     }
-    function isMember() {
+    // anyone on the list, club member or guest
+    function onList() {
       return signedIn() && (isOwner() || exists(memberPath()));
+    }
+    function isGuest() {
+      return signedIn() && !isOwner() && exists(memberPath()) && get(memberPath()).data.get('role', 'member') == 'guest';
+    }
+    // club members only
+    function isMember() {
+      return isOwner() || (onList() && get(memberPath()).data.get('role', 'member') != 'guest');
     }
     function isExec() {
       return isOwner() || (signedIn() && exists(memberPath()) && get(memberPath()).data.role == 'exec');
     }
+    function projectPath(projectId) {
+      return /databases/$(database)/documents/projects/$(projectId);
+    }
     function leads(projectId) {
-      return isMember() && projectId is string && projectId != ''
-        && exists(/databases/$(database)/documents/projects/$(projectId))
-        && get(/databases/$(database)/documents/projects/$(projectId)).data.leadEmail == myEmail();
+      return onList() && projectId is string && projectId != ''
+        && exists(projectPath(projectId))
+        && get(projectPath(projectId)).data.leadEmail == myEmail();
+    }
+    // a guest who is on this project's team or leads it
+    function guestOn(projectId) {
+      return isGuest() && projectId is string && projectId != ''
+        && exists(projectPath(projectId))
+        && (myEmail() in get(projectPath(projectId)).data.get('teamEmails', [])
+            || get(projectPath(projectId)).data.leadEmail == myEmail());
     }
     function changesOnly(keys) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
@@ -40,7 +60,7 @@ service cloud.firestore {
     }
     match /publicProjects/{id} {
       allow read: if true;
-      allow write: if isExec() || leads(id);
+      allow write: if isExec() || (isMember() && leads(id));
     }
     match /publicTeam/{id} {
       allow read: if true;
@@ -49,51 +69,58 @@ service cloud.firestore {
 
     // ---------- people ----------
     match /members/{email} {
-      allow read: if isMember() || (signedIn() && email == myEmail());
+      allow read: if onList() || (signedIn() && email == myEmail());
       allow create: if isExec() || (isOwner() && email == myEmail());
       allow update: if isExec()
-        || (isMember() && email == myEmail() && changesOnly(['name', 'photoURL', 'sitePhoto', 'bio', 'uid', 'lastSeenAt', 'showOnSite', 'emailOff']));
+        || (onList() && email == myEmail() && changesOnly(['name', 'photoURL', 'sitePhoto', 'bio', 'uid', 'lastSeenAt', 'showOnSite', 'emailOff']));
       allow delete: if isExec() && email != 'ngocminhquannguyen@gmail.com';
     }
 
     // ---------- work ----------
     match /projects/{id} {
-      allow read: if isMember();
+      allow read: if isMember()
+        || (isGuest() && (resource.data.leadEmail == myEmail() || myEmail() in resource.data.teamEmails));
       allow create, delete: if isExec();
       allow update: if isExec()
         || (leads(id) && request.resource.data.leadEmail == resource.data.leadEmail);
     }
 
     match /tasks/{id} {
-      allow read: if isMember();
-      allow create: if isMember() && request.resource.data.createdBy == myEmail()
-        && (isExec() || leads(request.resource.data.projectId) || request.resource.data.assigneeEmail == myEmail());
+      allow read: if isMember() || (isGuest() && resource.data.assigneeEmail == myEmail());
+      allow create: if onList() && request.resource.data.createdBy == myEmail()
+        && (isExec()
+            || (isMember() && (leads(request.resource.data.projectId) || request.resource.data.assigneeEmail == myEmail()))
+            || (isGuest() && request.resource.data.assigneeEmail == myEmail()
+                && (request.resource.data.projectId == '' || guestOn(request.resource.data.projectId))));
       allow update: if isExec()
-        || leads(resource.data.projectId)
+        || (isMember() && leads(resource.data.projectId))
+        || (onList() && resource.data.createdBy == myEmail() && resource.data.assigneeEmail == myEmail()
+            && request.resource.data.assigneeEmail == myEmail()
+            && request.resource.data.projectId == resource.data.projectId)
         || (isMember() && resource.data.createdBy == myEmail() && resource.data.assigneeEmail == myEmail()
             && request.resource.data.assigneeEmail == myEmail()
-            && (request.resource.data.projectId == resource.data.projectId || request.resource.data.projectId == '' || leads(request.resource.data.projectId)))
-        || (isMember() && resource.data.assigneeEmail == myEmail() && changesOnly(['status', 'updatedAt', 'completedAt']));
+            && (request.resource.data.projectId == '' || leads(request.resource.data.projectId)))
+        || (onList() && resource.data.assigneeEmail == myEmail() && changesOnly(['status', 'updatedAt', 'completedAt']));
       allow delete: if isExec()
-        || leads(resource.data.projectId)
-        || (isMember() && resource.data.createdBy == myEmail() && resource.data.assigneeEmail == myEmail());
+        || (isMember() && leads(resource.data.projectId))
+        || (onList() && resource.data.createdBy == myEmail() && resource.data.assigneeEmail == myEmail());
     }
 
     match /meetings/{id} {
-      allow read: if isMember();
+      allow read: if isMember() || (isGuest() && myEmail() in resource.data.attendees);
       allow create: if isMember() && request.resource.data.createdBy == myEmail();
       allow update, delete: if isExec()
         || (isMember() && resource.data.createdBy == myEmail())
-        || leads(resource.data.projectId);
+        || (isMember() && leads(resource.data.projectId));
     }
 
     match /activity/{id} {
       allow read: if isMember();
-      allow create: if isMember() && request.resource.data.actorEmail == myEmail();
+      allow create: if onList() && request.resource.data.actorEmail == myEmail();
       allow update, delete: if false;
     }
 
-    // ---------- money ----------
+    // ---------- money (club only) ----------
     match /sheets/{sheetId} {
       allow read: if isMember();
       allow write: if isExec();
@@ -110,7 +137,7 @@ service cloud.firestore {
       allow write: if isExec();
     }
 
-    // ---------- planning ----------
+    // ---------- planning (club only) ----------
     match /schoolDates/{id} {
       allow read: if isMember();
       allow write: if isExec();
@@ -120,7 +147,7 @@ service cloud.firestore {
       allow write: if isExec();
     }
 
-    // ---------- announcements (emails are sent by the server) ----------
+    // ---------- announcements (club only; emails are sent by the server) ----------
     match /announcements/{id} {
       allow read: if isMember();
       allow create: if isExec() && request.resource.data.createdBy == myEmail()
