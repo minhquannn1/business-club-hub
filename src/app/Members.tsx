@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRightLeft, Copy, ImageUp, Mail, Plus, Search, Trash2 } from 'lucide-react';
 import { useStore } from '../lib/store';
-import { compressSquare, handOverTasks, inviteMember, removeMember, updateMember } from '../lib/actions';
+import { compressSquare, handOver, inviteMember, removeMember, updateMember } from '../lib/actions';
 import { OWNER_EMAIL, ROLES, TEAMS } from '../lib/constants';
 import { ago, initials } from '../lib/format';
 import { emailReady, notify } from '../lib/notify';
@@ -193,6 +193,12 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
   const isOwnerRow = member.id === OWNER_EMAIL;
   const openTasks = store.tasks.filter((t) => t.assigneeEmail === member.id && t.status !== 'done');
   const leads = store.projects.filter((p) => p.leadEmail === member.id);
+  const handOverWhat = [
+    openTasks.length ? `${openTasks.length} open ${openTasks.length === 1 ? 'task' : 'tasks'}` : '',
+    leads.length ? `${leads.length} ${leads.length === 1 ? 'project' : 'projects'} as lead` : '',
+  ]
+    .filter(Boolean)
+    .join(' and ');
 
   const save = async () => {
     const patch: Partial<Member> = asAdmin
@@ -417,10 +423,10 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
               {openTasks.length} open {openTasks.length === 1 ? 'task' : 'tasks'}
             </p>
           )}
-          {asAdmin && openTasks.length > 0 && (
+          {asAdmin && (openTasks.length > 0 || leads.length > 0) && (
             <div className="handover">
               <label htmlFor="handover-to" className="small">
-                Give {self ? 'my' : 'their'} {openTasks.length} open {openTasks.length === 1 ? 'task' : 'tasks'} to
+                Give {self ? 'my' : 'their'} {handOverWhat} to
               </label>
               <select id="handover-to" className="select" value={handTo} onChange={(e) => setHandTo(e.target.value)}>
                 <option value="">Pick someone</option>
@@ -440,11 +446,11 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
                   const to = store.memberMap.get(handTo);
                   if (!to) return;
                   const ok = await confirm({
-                    title: `Give ${openTasks.length} ${openTasks.length === 1 ? 'task' : 'tasks'} to ${to.name || to.email}?`,
-                    body: 'They become the person in charge. Done tasks stay where they are.',
+                    title: `Give ${handOverWhat} to ${to.name || to.email}?`,
+                    body: 'They become the person in charge and the project lead. Done tasks stay where they are.',
                     confirm: 'Hand over',
                   });
-                  if (ok) await run(() => handOverTasks(openTasks, to.id, member.name || member.email, to.name || to.email), `Handed over to ${to.name || to.email}`);
+                  if (ok) await run(() => handOver(openTasks, leads, to.id, member.name || member.email, to.name || to.email), `Handed over to ${to.name || to.email}`);
                   setHandTo('');
                 }}
               >

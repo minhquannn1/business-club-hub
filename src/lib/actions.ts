@@ -107,14 +107,17 @@ export async function updateTask(prev: Task, patch: Partial<Task>) {
 }
 
 /** Exec: give someone else every open task of one member (when roles change or someone leaves). */
-export async function handOverTasks(tasks: Task[], toEmail: string, fromName: string, toName: string) {
+/** Someone is leaving or swapping accounts: their open tasks and the projects they lead go to someone else. */
+export async function handOver(tasks: Task[], projects: Project[], toEmail: string, fromName: string, toName: string) {
   const now = Date.now();
   for (let i = 0; i < tasks.length; i += 400) {
     const batch = writeBatch(db);
     for (const t of tasks.slice(i, i + 400)) batch.update(doc(db, 'tasks', t.id), { assigneeEmail: toEmail, updatedAt: now });
     await batch.commit();
   }
-  log('gave', 'member', toEmail, toName, `${tasks.length} open ${tasks.length === 1 ? 'task' : 'tasks'} from ${fromName}`);
+  for (const p of projects) await updateProject(p, { leadEmail: toEmail, teamEmails: (p.teamEmails ?? []).filter((e) => e !== toEmail) }, '');
+  const parts = [tasks.length ? `${tasks.length} open ${tasks.length === 1 ? 'task' : 'tasks'}` : '', projects.length ? `${projects.length} ${projects.length === 1 ? 'project' : 'projects'} to lead` : ''].filter(Boolean);
+  log('gave', 'member', toEmail, toName, `${parts.join(' and ')} from ${fromName}`);
 }
 
 export async function deleteTask(t: Task) {
