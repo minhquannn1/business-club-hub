@@ -109,5 +109,15 @@ service cloud.firestore {
       allow read: if isMember();
       allow write: if isExec();
     }
+
+    // ---------- planning ----------
+    match /schoolDates/{id} {
+      allow read: if isMember();
+      allow write: if isExec();
+    }
+    match /links/{id} {
+      allow read: if isMember();
+      allow write: if isExec();
+    }
   }
 }

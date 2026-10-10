@@ -13,7 +13,7 @@ import {
   type DocumentData,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Activity, Column, Meeting, Member, Project, PublicMember, PublicProject, Row, Sheet, SiteContent, Task } from './types';
+import type { Activity, Column, Meeting, Member, Project, ProjectLink, PublicMember, PublicProject, QuickLink, Row, SchoolDate, Sheet, SiteContent, Task } from './types';
 import { LEDGER_CATEGORIES } from './constants';
 import { uid } from './format';
 
@@ -463,4 +463,139 @@ export async function importEvents(events: ImportedEvent[], firstOrder: number) 
     log('created', 'sheet', ref.id, e.title, 'imported');
     i++;
   }
+}
+
+/* ---------------- school calendar and links ---------------- */
+
+export async function saveSchoolDate(d: Omit<SchoolDate, 'id'> & { id?: string }) {
+  const { id, ...data } = d;
+  if (id) await setDoc(doc(db, 'schoolDates', id), data);
+  else await addDoc(collection(db, 'schoolDates'), data);
+}
+
+export async function deleteSchoolDate(id: string) {
+  await deleteDoc(doc(db, 'schoolDates', id));
+}
+
+/** Starts an Idea-stage project for a school date and links the two. */
+export async function planForSchoolDate(d: SchoolDate, order: number): Promise<string> {
+  const id = await createProject({
+    title: /booth|stall|fair/i.test(d.title) ? d.title : `${d.title} booth`,
+    kind: 'event',
+    summary: '',
+    description: d.note ?? '',
+    goals: '',
+    stage: 'idea',
+    leadEmail: actor,
+    teamEmails: [],
+    startDate: d.date,
+    endDate: d.endDate || d.date,
+    location: 'ISPH',
+    color: '#1E3FD8',
+    budgetPlanned: 0,
+    isPublic: false,
+    publicBlurb: '',
+    order,
+  });
+  await updateDoc(doc(db, 'schoolDates', d.id), { projectId: id });
+  return id;
+}
+
+export async function saveLink(l: Omit<QuickLink, 'id'> & { id?: string }) {
+  const { id, ...data } = l;
+  if (id) await setDoc(doc(db, 'links', id), data);
+  else await addDoc(collection(db, 'links'), data);
+}
+
+export async function deleteLink(id: string) {
+  await deleteDoc(doc(db, 'links', id));
+}
+
+/* ---------------- bulk import (exec only) ---------------- */
+
+export interface PlannedProject {
+  title: string;
+  kind?: 'event' | 'project';
+  stage?: Project['stage'];
+  startDate?: string;
+  endDate?: string;
+  location?: string;
+  summary?: string;
+  description?: string;
+  goals?: string;
+  color?: string;
+  budgetPlanned?: number;
+  links?: ProjectLink[];
+  tasks?: { title: string; dueDate?: string; notes?: string; mine?: boolean }[];
+  /** budget lines become a budget sheet named after the project */
+  budget?: { item: string; qty?: number; unit?: number; notes?: string }[];
+}
+
+export interface ImportBundle {
+  events?: ImportedEvent[];
+  projects?: PlannedProject[];
+  schoolDates?: Omit<SchoolDate, 'id'>[];
+  links?: Omit<QuickLink, 'id'>[];
+  ledgers?: string[]; // empty ledger sheets to create
+}
+
+export async function importBundle(b: ImportBundle, baseOrder: number) {
+  let order = baseOrder;
+  const report: string[] = [];
+  if (b.events?.length) {
+    await importEvents(b.events, order);
+    order += b.events.length;
+    report.push(`${b.events.length} past events`);
+  }
+  for (const pp of b.projects ?? []) {
+    const id = await createProject({
+      title: pp.title,
+      kind: pp.kind ?? 'event',
+      summary: pp.summary ?? '',
+      description: pp.description ?? '',
+      goals: pp.goals ?? '',
+      stage: pp.stage ?? 'planning',
+      leadEmail: actor,
+      teamEmails: [],
+      startDate: pp.startDate ?? '',
+      endDate: pp.endDate ?? pp.startDate ?? '',
+      location: pp.location ?? '',
+      color: pp.color || '#1E3FD8',
+      budgetPlanned: pp.budgetPlanned ?? 0,
+      isPublic: false,
+      publicBlurb: '',
+      links: pp.links ?? [],
+      order: order++,
+    });
+    for (const t of pp.tasks ?? []) {
+      await createTask({ title: t.title, notes: t.notes ?? '', projectId: id, assigneeEmail: t.mine ? actor : '', dueDate: t.dueDate ?? '', priority: 'med', status: 'todo' }, true);
+    }
+    if (pp.budget?.length) {
+      const sheetId = await createSheet(`${pp.title} budget`, 'budget', order++, pp.title);
+      const sheet = await getDoc(doc(db, 'sheets', sheetId));
+      const cols = (sheet.data() as Sheet).columns;
+      const rows = (await getDocs(collection(db, 'sheets', sheetId, 'rows'))).docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Row, 'id'>) })).sort((a, b) => a.order - b.order);
+      const batch = writeBatch(db);
+      pp.budget.forEach((line, i) => {
+        const r = rows[i + 1];
+        if (!r) return;
+        const cells: Record<string, string> = { ...r.cells, [cols[0].key]: line.item, [cols[4].key]: line.notes ?? '' };
+        if (line.qty != null) cells[cols[1].key] = String(line.qty);
+        if (line.unit != null) cells[cols[2].key] = String(line.unit);
+        if (line.qty == null && line.unit != null) cells[cols[3].key] = String(line.unit);
+        batch.update(doc(db, 'sheets', sheetId, 'rows', r.id), { cells });
+      });
+      await batch.commit();
+    }
+    report.push(pp.title);
+  }
+  for (const d of b.schoolDates ?? []) await saveSchoolDate(d);
+  if (b.schoolDates?.length) report.push(`${b.schoolDates.length} school dates`);
+  for (const l of b.links ?? []) await saveLink(l);
+  if (b.links?.length) report.push(`${b.links.length} links`);
+  for (const name of b.ledgers ?? []) {
+    await createSheet(name, 'ledger', order++);
+    report.push(`${name} ledger`);
+  }
+  return report;
 }

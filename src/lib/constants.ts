@@ -62,6 +62,6 @@ export const DEFAULT_SITE: SiteContent = {
   ],
 };
 
-export const EXPENSE_CATEGORIES = ['Food & drinks', 'Printing', 'Prizes', 'Decorations', 'Transport', 'Venue', 'Marketing', 'Supplies', 'Other'];
+export const EXPENSE_CATEGORIES = ['Food & drinks', 'Supplies', 'Decorations', 'Printing', 'Marketing', 'Prizes', 'Transport', 'Venue', 'Cash float', 'Miscellaneous'];
 export const INCOME_CATEGORIES = ['Sponsorship', 'Ticket sales', 'Product sales', 'School funding', 'Donations', 'Other'];
 export const LEDGER_CATEGORIES = [...INCOME_CATEGORIES.filter((c) => c !== 'Other'), ...EXPENSE_CATEGORIES];

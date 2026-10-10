@@ -1434,3 +1434,80 @@ button.row-link {
   font-weight: 600;
   color: var(--ink-2);
 }
+
+/* school calendar + links */
+.school-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+}
+.school-date {
+  flex: none;
+  width: 44px;
+  display: grid;
+  justify-items: center;
+  line-height: 1.05;
+  padding: 5px 0;
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+}
+.school-date strong {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 20px;
+}
+.school-date span {
+  font-size: 11px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.school-row.k-booth .school-date {
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand);
+}
+.school-row.k-holiday .title {
+  color: var(--ink-3);
+}
+.school-row .row-main {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+}
+.chip-link {
+  text-decoration: none;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kind-chip.k-holiday {
+  color: var(--ink-3);
+}
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 10px;
+}
+.link-row .row-link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cal-item.school {
+  background: transparent;
+  border: 1px dashed var(--rule);
+  color: var(--ink-2);
+}
+.cal-item.school.k-booth {
+  border-color: color-mix(in srgb, var(--brand) 50%, transparent);
+  color: var(--brand);
+}
+.cal-item.school.k-holiday {
+  border-style: dotted;
+  color: var(--ink-3);
+}

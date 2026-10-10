@@ -10,6 +10,7 @@ import { MembersPage } from './Members';
 import { ActivityPage } from './Activity';
 import { WebsitePage } from './Website';
 import { Login } from './Login';
+import { ImportPage } from './planning';
 
 /** The signed-in workspace, loaded as its own chunk so the public site stays light. */
 export default function WorkspaceRoutes({ login }: { login?: boolean }) {
@@ -28,6 +29,7 @@ export default function WorkspaceRoutes({ login }: { login?: boolean }) {
         <Route path="members" element={<MembersPage />} />
         <Route path="activity" element={<ActivityPage />} />
         <Route path="website" element={<WebsitePage />} />
+        <Route path="import" element={<ImportPage />} />
         <Route path="*" element={<Navigate to="/app" replace />} />
       </Route>
     </Routes>

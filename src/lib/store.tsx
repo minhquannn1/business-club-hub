@@ -13,8 +13,8 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { auth, db, googleProvider, firebaseConfigured } from './firebase';
-import { OWNER_EMAIL, DEFAULT_SITE } from './constants';
-import type { Activity, Meeting, Member, Project, Row, Sheet, SiteContent, Task } from './types';
+import { OWNER_EMAIL, DEFAULT_SITE, LEDGER_CATEGORIES } from './constants';
+import type { Activity, Meeting, Member, Project, Row, Sheet, SiteContent, Task, SchoolDate, QuickLink } from './types';
 import { setCurrency } from './format';
 
 export type Access = 'loading' | 'signedOut' | 'noAccess' | 'ok' | 'error';
@@ -37,6 +37,8 @@ interface Store {
   activity: Activity[];
   sheets: Sheet[];
   rows: Map<string, Row[]>; // sheetId -> rows sorted by order
+  schoolDates: SchoolDate[];
+  links: QuickLink[];
   site: SiteContent;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -66,6 +68,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [activity, setActivity] = useState<Activity[]>([]);
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [rowsFlat, setRowsFlat] = useState<{ sheetId: string; row: Row }[]>([]);
+  const [schoolDates, setSchoolDates] = useState<SchoolDate[]>([]);
+  const [links, setLinks] = useState<QuickLink[]>([]);
   const [site, setSite] = useState<SiteContent>(DEFAULT_SITE);
   const [loaded, setLoaded] = useState<Record<string, boolean>>({});
   const touched = useRef(false);
@@ -200,6 +204,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     sub<Meeting>('meetings', collection(db, 'meetings'), setMeetings);
     sub<Activity>('activity', query(collection(db, 'activity'), orderBy('at', 'desc'), limit(300)), setActivity);
     sub<Sheet>('sheets', collection(db, 'sheets'), setSheets);
+    sub<SchoolDate>('schoolDates', collection(db, 'schoolDates'), setSchoolDates);
+    sub<QuickLink>('links', collection(db, 'links'), setLinks);
     subs.push(
       onSnapshot(
         collectionGroup(db, 'rows'),
@@ -258,8 +264,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       tasks,
       meetings: [...meetings].sort((a, b) => (b.date || '').localeCompare(a.date || '')),
       activity,
-      sheets: [...sheets].sort((a, b) => a.order - b.order),
+      // ledgers made before a category was added still offer it
+      sheets: [...sheets]
+        .sort((a, b) => a.order - b.order)
+        .map((s) => (s.isLedger ? { ...s, columns: s.columns.map((c) => (c.role === 'category' ? { ...c, options: Array.from(new Set([...(c.options ?? []), ...LEDGER_CATEGORIES])) } : c)) } : s)),
       rows,
+      schoolDates: [...schoolDates].sort((a, b) => a.date.localeCompare(b.date)),
+      links: [...links].sort((a, b) => a.order - b.order),
       site,
       signIn: async () => {
         setError('');
@@ -277,7 +288,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await fbSignOut(auth);
       },
     };
-  }, [access, error, user, me, members, projects, tasks, meetings, activity, sheets, rowsFlat, site, loaded]);
+  }, [access, error, user, me, members, projects, tasks, meetings, activity, sheets, rowsFlat, schoolDates, links, site, loaded]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

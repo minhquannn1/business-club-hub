@@ -29,6 +29,8 @@ import { ProjectForm } from './projectForm';
 type View = 'board' | 'timeline' | 'calendar' | 'list';
 
 function loadView(): View {
+  const q = new URLSearchParams(window.location.search).get('view');
+  if (q === 'board' || q === 'timeline' || q === 'calendar' || q === 'list') return q;
   try {
     return (localStorage.getItem('projects.view') as View) || 'board';
   } catch {
@@ -305,11 +307,13 @@ function ProjectCalendar() {
   const store = useStore();
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [showTasks, setShowTasks] = useState(true);
+  const [showSchool, setShowSchool] = useState(true);
   const days = eachDayOfInterval({ start: startOfWeek(month, { weekStartsOn: 1 }), end: endOfWeek(endOfMonth(month), { weekStartsOn: 1 }) });
   const key = (d: Date) => format(d, 'yyyy-MM-dd');
   const byDay = useMemo(() => {
-    const m = new Map<string, { id: string; label: string; color: string; to: string; task?: boolean; done?: boolean }[]>();
-    const add = (k: string, it: { id: string; label: string; color: string; to: string; task?: boolean; done?: boolean }) => {
+    type Item = { id: string; label: string; color: string; to: string; task?: boolean; done?: boolean; school?: string };
+    const m = new Map<string, Item[]>();
+    const add = (k: string, it: Item) => {
       if (!m.has(k)) m.set(k, []);
       m.get(k)!.push(it);
     };
@@ -320,13 +324,22 @@ function ProjectCalendar() {
       if (e < s) continue;
       for (const d of eachDayOfInterval({ start: s, end: e })) add(key(d), { id: p.id, label: p.title, color: p.color, to: `/app/projects/${p.id}` });
     }
+    if (showSchool)
+      for (const d of store.schoolDates) {
+        const s = toDate(d.date);
+        if (!s) continue;
+        const e = toDate(d.endDate || d.date) ?? s;
+        if (e < s) continue;
+        for (const day of eachDayOfInterval({ start: s, end: e }))
+          add(key(day), { id: `s-${d.id}`, label: d.title, color: 'var(--ink-3)', to: d.projectId ? `/app/projects/${d.projectId}` : '', school: d.kind });
+      }
     if (showTasks)
       for (const t of store.tasks) {
         if (!t.dueDate) continue;
         add(t.dueDate, { id: t.id, label: t.title, color: store.projectMap.get(t.projectId)?.color ?? 'var(--ink-3)', to: `/app/tasks?open=${t.id}&scope=all`, task: true, done: t.status === 'done' });
       }
     return m;
-  }, [store.projects, store.tasks, store.projectMap, showTasks]);
+  }, [store.projects, store.tasks, store.projectMap, store.schoolDates, showTasks, showSchool]);
 
   return (
     <div className="cal">
@@ -343,9 +356,16 @@ function ProjectCalendar() {
             Today
           </button>
         </div>
-        <label className="check small">
-          <input type="checkbox" checked={showTasks} onChange={(e) => setShowTasks(e.target.checked)} /> Task deadlines
-        </label>
+        <span style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          {store.schoolDates.length > 0 && (
+            <label className="check small">
+              <input type="checkbox" checked={showSchool} onChange={(e) => setShowSchool(e.target.checked)} /> School calendar
+            </label>
+          )}
+          <label className="check small">
+            <input type="checkbox" checked={showTasks} onChange={(e) => setShowTasks(e.target.checked)} /> Task deadlines
+          </label>
+        </span>
       </div>
       <div className="cal-grid">
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
@@ -359,11 +379,17 @@ function ProjectCalendar() {
           return (
             <div key={key(d)} className={`cal-day ${isSameMonth(d, month) ? '' : 'other'} ${isToday(d) ? 'today' : ''}`}>
               <span className="cal-num">{format(d, 'd')}</span>
-              {shown.map((it) => (
-                <Link key={it.id} to={it.to} className={`cal-item ${it.task ? 'task' : ''} ${it.done ? 'done' : ''}`} style={{ ['--c' as string]: it.color }} title={it.label}>
-                  {it.label}
-                </Link>
-              ))}
+              {shown.map((it) =>
+                it.school && !it.to ? (
+                  <span key={it.id} className={`cal-item school k-${it.school}`} title={it.label}>
+                    {it.label}
+                  </span>
+                ) : (
+                  <Link key={it.id} to={it.to} className={`cal-item ${it.task ? 'task' : ''} ${it.done ? 'done' : ''} ${it.school ? `school k-${it.school}` : ''}`} style={{ ['--c' as string]: it.color }} title={it.label}>
+                    {it.label}
+                  </Link>
+                ),
+              )}
               {items.length > shown.length && <span className="cal-more">+{items.length - shown.length} more</span>}
             </div>
           );

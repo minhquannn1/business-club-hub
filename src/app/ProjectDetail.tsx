@@ -13,6 +13,7 @@ import { ProjectForm } from './projectForm';
 import { TaskForm, TaskRow, sortTasks } from './tasks';
 import { LedgerEntryForm } from './ledgerEntry';
 import { taskProgress } from './Projects';
+import { ProjectLinks } from './projectLinks';
 
 type Tab = 'overview' | 'tasks' | 'money' | 'meetings' | 'review';
 
@@ -332,6 +333,7 @@ export function ProjectDetail() {
               </dl>
             </div>
           </section>
+          <ProjectLinks project={p} canEdit={canEdit} />
           <section className="panel">
             <div className="panel-head">
               <h2 className="h3" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

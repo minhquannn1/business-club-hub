@@ -46,6 +46,7 @@ export interface Project {
   isPublic: boolean;
   publicBlurb: string;
   review?: ProjectReview;
+  links?: ProjectLink[];
   order: number;
   createdAt: number;
   createdBy: string;
@@ -178,5 +179,29 @@ export interface PublicMember {
   team: string;
   photoURL?: string;
   bio?: string;
+  order: number;
+}
+
+export interface ProjectLink {
+  label: string;
+  url: string;
+}
+
+/** A date on the school calendar (not a club project). */
+export interface SchoolDate {
+  id: string;
+  title: string;
+  date: string; // yyyy-MM-dd
+  endDate?: string;
+  kind: 'school' | 'holiday' | 'booth'; // booth = a chance for the club to run a stall
+  note?: string;
+  projectId?: string; // set once the club plans something for it
+}
+
+/** A link pinned to the workspace overview (masterplans, shared sheets...). */
+export interface QuickLink {
+  id: string;
+  label: string;
+  url: string;
   order: number;
 }

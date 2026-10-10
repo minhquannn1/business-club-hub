@@ -12,6 +12,7 @@ import { EmptyArt } from '../components/Art';
 import { TaskForm, TaskRow, sortTasks } from './tasks';
 import { ActivityLine } from './Activity';
 import { taskProgress } from './Projects';
+import { QuickLinksPanel, SchoolCalendarPanel } from './planning';
 
 const VN_SURNAMES = new Set(['nguyen', 'tran', 'le', 'pham', 'hoang', 'huynh', 'phan', 'vu', 'vo', 'dang', 'bui', 'do', 'ho', 'ngo', 'duong', 'ly', 'dinh', 'truong', 'mai', 'lam', 'trinh', 'cao', 'luu', 'ha', 'ta']);
 
@@ -146,6 +147,8 @@ export function Overview() {
         </div>
 
         <div className="ov-stack">
+          <SchoolCalendarPanel />
+          <QuickLinksPanel />
           {budgetWatch.length > 0 && (
             <section className="panel">
               <div className="panel-head">
