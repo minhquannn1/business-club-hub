@@ -139,6 +139,15 @@ export function StickerHero({ clubName, kicker, next }: { clubName: string; kick
           )}
         </div>
         <div className="board" ref={board} aria-hidden="true">
+          <svg className="board-globe" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="80" />
+            <ellipse cx="100" cy="100" rx="40" ry="80" />
+            <ellipse cx="100" cy="100" rx="66" ry="80" />
+            <line x1="100" y1="20" x2="100" y2="180" />
+            <ellipse cx="100" cy="100" rx="80" ry="28" />
+            <path d="M28 66 H172 M28 134 H172" />
+            <ellipse className="orbit" cx="100" cy="100" rx="98" ry="34" transform="rotate(-18 100 100)" />
+          </svg>
           {stickers.map((s) => {
             const o = offsets[s.id];
             return (
