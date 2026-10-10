@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowUpRight, CalendarDays, Instagram, Mail, MapPin, Pause, Play, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays, Instagram, Mail, MapPin, Pause, Play, Users } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { usePublicData } from './usePublic';
 import { fmtDate, fmtRange, initials, todayISO } from '../lib/format';
@@ -167,7 +167,7 @@ export function SiteHome() {
 
   return (
     <div className="site">
-      <section className="hero" aria-labelledby="hero-title">
+      <section className="hero dark-band" aria-labelledby="hero-title">
         <SiteHeader onDark />
         <div className="hero-art" aria-hidden="true">
           <HeroChart flag={next ? { label: next.title, sub: next.startDate ? `Next up, ${fmtDate(next.startDate, 'd MMM')}` : 'Next up' } : undefined} />
@@ -182,7 +182,7 @@ export function SiteHome() {
           <p className="hero-lead">{site.about.split(/(?<=\.)\s/)[0]}</p>
           <div className="hero-actions">
             <a href="#join" className="btn btn-light">
-              Join the club
+              Join the club <ArrowRight size={17} className="btn-arrow" aria-hidden="true" />
             </a>
             <a href="#events" className="btn btn-on-dark">
               Upcoming events
@@ -334,7 +334,7 @@ export function SiteHome() {
           </div>
         </section>
 
-        <section id="about" className="site-section about">
+        <section id="about" className="site-section about dark-band">
           <div className="site-wrap about-grid">
             <h2 className="about-label">About us</h2>
             <div>
@@ -353,7 +353,7 @@ export function SiteHome() {
               <ul className="team-grid">
                 {team.map((m) => (
                   <li key={m.id} className="team-card">
-                    <Avatar name={m.name} photo={m.photoURL} />
+                    <Avatar name={m.name} photo={m.photoURL} size={320} />
                     <div className="team-info">
                       <strong>{m.name}</strong>
                       <span className="team-role">{[m.title, m.team].filter(Boolean).join(', ')}</span>

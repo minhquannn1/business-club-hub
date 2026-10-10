@@ -24,7 +24,7 @@ export function Login() {
   }, [site.clubName]);
   return (
     <div className="login">
-      <aside className="login-art" aria-hidden="true">
+      <aside className="login-art dark-band" aria-hidden="true">
         <div className="login-art-top">
           <LogoMark size={36} />
           <span>{site.shortName || site.clubName}</span>

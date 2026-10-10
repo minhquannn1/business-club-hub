@@ -9,11 +9,11 @@ import { useId, useMemo } from 'react';
 export function LogoMark({ size = 36, title }: { size?: number; title?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" role={title ? 'img' : undefined} aria-hidden={title ? undefined : true} aria-label={title} className="logo-mark">
-      <rect width="40" height="40" rx="11" fill="var(--logo-bg, #0a1633)" />
-      <rect x="9" y="22" width="5.5" height="9" rx="1.6" fill="#fff" opacity="0.55" />
-      <rect x="17.25" y="16" width="5.5" height="15" rx="1.6" fill="#fff" opacity="0.8" />
-      <rect x="25.5" y="11" width="5.5" height="20" rx="1.6" fill="#fff" />
-      <circle cx="28.25" cy="6.6" r="2.6" fill="#8db8ff" />
+      <rect width="40" height="40" rx="10" fill="var(--logo-bg, #000)" />
+      <rect x="9" y="22" width="5" height="9" rx="1" fill="var(--logo-fg, #fff)" opacity="0.45" />
+      <rect x="17.5" y="16" width="5" height="15" rx="1" fill="var(--logo-fg, #fff)" opacity="0.75" />
+      <rect x="26" y="11" width="5" height="20" rx="1" fill="var(--logo-fg, #fff)" />
+      <circle cx="28.5" cy="6.4" r="2.4" fill="var(--logo-dot, #1f3dff)" />
     </svg>
   );
 }
@@ -77,9 +77,9 @@ export function HeroChart({ flag, seed = 7 }: { flag?: ChartFlag; seed?: number 
     <svg className="hero-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" aria-hidden="true">
       <defs>
         <linearGradient id={`fill-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#8db8ff" stopOpacity="0.34" />
-          <stop offset="0.55" stopColor="#8db8ff" stopOpacity="0.07" />
-          <stop offset="1" stopColor="#8db8ff" stopOpacity="0" />
+          <stop offset="0" stopColor="#ffffff" stopOpacity="0.16" />
+          <stop offset="0.6" stopColor="#ffffff" stopOpacity="0.03" />
+          <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
         </linearGradient>
         <linearGradient id={`fade-${id}`} x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stopColor="#fff" stopOpacity="0" />
@@ -189,7 +189,7 @@ export const PICTOGRAM_KEYS = Object.keys(Pictograms);
 
 /* ---------- avatars ---------- */
 
-const AVATAR_TONES = ['#2350E6', '#0A1633', '#3B6FD9', '#1B4DB5', '#4B5FA8', '#0E6BA8', '#2F4F9E'];
+const AVATAR_TONES = ['#1F3DFF', '#0A0A0A', '#3C3F46', '#1631D6', '#55575D', '#2A2C31'];
 export function toneFor(name: string) {
   let h = 0;
   for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
