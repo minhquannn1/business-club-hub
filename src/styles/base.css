@@ -670,6 +670,8 @@ p {
 /* ---------- segmented ---------- */
 .seg {
   display: inline-flex;
+  max-width: 100%;
+  overflow-x: auto;
   padding: 3px;
   gap: 2px;
   border-radius: 9px;
@@ -692,6 +694,14 @@ p {
 .seg button svg {
   width: 15px;
   height: 15px;
+}
+@media (max-width: 480px) {
+  .seg button {
+    padding: 0 10px;
+  }
+  .seg button:has(span) svg {
+    display: none;
+  }
 }
 .seg button[aria-pressed='true'] {
   background: var(--surface);

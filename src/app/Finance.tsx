@@ -295,8 +295,8 @@ function Summary({ onNewLedger, onRecord }: { onNewLedger: () => void; onRecord:
                 <tr>
                   <th>Date</th>
                   <th>What</th>
-                  <th>Project</th>
-                  <th>Category</th>
+                  <th className="hide-sm">Project</th>
+                  <th className="hide-sm">Category</th>
                   <th className="r">Amount</th>
                 </tr>
               </thead>
@@ -307,8 +307,8 @@ function Summary({ onNewLedger, onRecord }: { onNewLedger: () => void; onRecord:
                     <td>
                       <Link to={`/app/finance/${e.sheetId}`}>{e.description || 'No description'}</Link>
                     </td>
-                    <td className="small muted">{store.projectMap.get(e.projectId)?.title ?? ''}</td>
-                    <td className="small muted">{e.category}</td>
+                    <td className="small muted hide-sm">{store.projectMap.get(e.projectId)?.title ?? ''}</td>
+                    <td className="small muted hide-sm">{e.category}</td>
                     <td className={`r num ${e.direction === 'in' ? 'pos' : ''}`}>
                       {e.direction === 'in' ? '+' : '−'}
                       {money(e.amount)}
