@@ -26,8 +26,7 @@ export const PHOTOS = {
   fair: p('school-fair', 1050, 1400, 'School fair', 'Tents and stalls at the school fair'),
   queue: p('fair-queue', 1050, 1400, 'The queue', 'Students lining up at the club stall during the school fair'),
   meeting: p('club-meeting', 1400, 933, 'Club meeting', 'Members planning around laptops at a club meeting'),
-  meeting2: p('club-meeting-2', 1400, 933, 'Planning session', 'Members working on laptops during a club meeting'),
   intl: p('international-day', 1400, 933, 'International Day', 'Younger students doing crafts at the International Day stall'),
 };
 
-export const GALLERY = [PHOTOS.team, PHOTOS.halloween, PHOTOS.queue, PHOTOS.meeting, PHOTOS.crowd, PHOTOS.intl, PHOTOS.meeting2, PHOTOS.fair, PHOTOS.sales];
+export const GALLERY = [PHOTOS.team, PHOTOS.halloween, PHOTOS.queue, PHOTOS.meeting, PHOTOS.crowd, PHOTOS.intl, PHOTOS.fair, PHOTOS.sales];
