@@ -547,6 +547,7 @@ export interface PlannedProject {
   budget?: { item: string; qty?: number; unit?: number; notes?: string }[];
   organizer?: string;
   rounds?: { name: string; date: string; done?: boolean }[];
+  result?: string; // competitions: placing or award
 }
 
 export interface ImportBundle {
@@ -587,6 +588,7 @@ export async function importBundle(b: ImportBundle, baseOrder: number) {
       links: pp.links ?? [],
       ...(pp.organizer ? { organizer: pp.organizer } : {}),
       ...(pp.rounds?.length ? { rounds: pp.rounds.map((r) => ({ id: uid('r'), name: r.name, date: r.date, done: !!r.done })) } : {}),
+      ...(pp.result ? { review: { result: pp.result } } : {}),
       order: order++,
     });
     made.set(pp.title, id);
