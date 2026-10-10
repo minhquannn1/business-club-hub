@@ -65,7 +65,7 @@ export function useStore(): Store {
 
 const emailKey = (e: string | null | undefined) => (e ?? '').trim().toLowerCase();
 
-const DEMO = import.meta.env.DEV && typeof window !== 'undefined' && /[?&]demo/.test(window.location.search + (sessionStorage.getItem('demo') ? '&demo' : ''));
+export const DEMO = import.meta.env.DEV && typeof window !== 'undefined' && /[?&]demo/.test(window.location.search + (sessionStorage.getItem('demo') ? '&demo' : ''));
 // ?demo=guest previews the workspace as a guest
 const DEMO_GUEST = DEMO && (/[?&]demo=guest/.test(window.location.search) || sessionStorage.getItem('demo') === 'guest');
 const DEMO_GUEST_EMAIL = 'khoa@school.vn';

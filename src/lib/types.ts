@@ -238,3 +238,88 @@ export interface Announcement {
   emailedAt?: number;
   recipientCount?: number;
 }
+
+/* ---------- competition deliverables ---------- */
+
+export type DeliverableStatus = 'todo' | 'drafting' | 'review' | 'final' | 'submitted';
+export type DocFont = 'Times New Roman' | 'Arial' | 'Calibri' | 'Georgia';
+
+/** How the document looks on the page and when exported. */
+export interface DocFormat {
+  font: DocFont;
+  size: number; // pt
+  lineHeight: number; // 1 = single, 2 = double
+  margin: number; // inches, all sides
+  paper: 'letter' | 'a4';
+  pageNumbers?: boolean;
+}
+
+/** What the competition does not allow in this document. */
+export interface DocRules {
+  noImages?: boolean;
+  noLinks?: boolean;
+  noTables?: boolean;
+  maxMB?: number;
+}
+
+/** Something a competition team has to hand in: a written document or a file. */
+export interface Deliverable {
+  id: string;
+  projectId: string;
+  title: string;
+  kind: 'doc' | 'file';
+  status: DeliverableStatus;
+  ownerEmail: string;
+  roundId?: string; // the competition deadline it is due for
+  dueDate?: string; // used when there is no round
+  instructions?: string; // the competition's rules for it
+  format: DocFormat;
+  rules?: DocRules;
+  link?: string; // the file, or where it was submitted
+  words?: number;
+  order: number;
+  templateKey?: string;
+  createdBy: string;
+  createdAt: number;
+  updatedAt: number;
+  updatedBy?: string;
+  submittedAt?: number;
+  submittedBy?: string;
+}
+
+/** One part of a deliverable, with its own word limit and writer. */
+export interface DocSection {
+  id: string;
+  title: string;
+  order: number;
+  limit?: number; // words, 0 or missing = no limit
+  hint?: string;
+  content: string; // editor JSON as a string
+  words: number;
+  writerEmail?: string;
+  printTitle?: boolean; // show the title as a heading in the export
+  pageBreakBefore?: boolean;
+  rev: number;
+  updatedAt?: number;
+  updatedBy?: string;
+  lock?: { email: string; at: number } | null;
+}
+
+export interface DocVersion {
+  id: string;
+  at: number;
+  by: string;
+  label: string;
+  sections: Pick<DocSection, 'title' | 'order' | 'limit' | 'hint' | 'content' | 'words' | 'writerEmail' | 'printTitle' | 'pageBreakBefore'>[];
+}
+
+export interface DocComment {
+  id: string;
+  sectionId: string;
+  quote?: string;
+  body: string;
+  by: string;
+  at: number;
+  resolved?: boolean;
+  resolvedBy?: string;
+}

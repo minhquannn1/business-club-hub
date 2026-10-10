@@ -158,6 +158,47 @@ service cloud.firestore {
       allow write: if isExec();
     }
 
+    // ---------- competition deliverables ----------
+    // Club members can read them; the exec team and the competition's lead and team
+    // (guests included) can write. Comments are open to anyone who can read.
+    function onTeam(projectId) {
+      return onList() && projectId is string && projectId != ''
+        && exists(projectPath(projectId))
+        && (get(projectPath(projectId)).data.leadEmail == myEmail()
+            || myEmail() in get(projectPath(projectId)).data.get('teamEmails', []));
+    }
+    function canWriteFor(projectId) {
+      return isExec() || onTeam(projectId);
+    }
+    function canReadFor(projectId) {
+      return isMember() || onTeam(projectId);
+    }
+    function delivProject(id) {
+      return get(/databases/$(database)/documents/deliverables/$(id)).data.projectId;
+    }
+    match /deliverables/{id} {
+      allow read: if canReadFor(resource.data.projectId);
+      allow create: if canWriteFor(request.resource.data.projectId) && request.resource.data.createdBy == myEmail();
+      allow update: if canWriteFor(resource.data.projectId) && request.resource.data.projectId == resource.data.projectId;
+      allow delete: if isExec() || leads(resource.data.projectId);
+
+      match /sections/{sid} {
+        allow read: if canReadFor(delivProject(id));
+        allow write: if canWriteFor(delivProject(id));
+      }
+      match /versions/{vid} {
+        allow read: if canReadFor(delivProject(id));
+        allow create: if canWriteFor(delivProject(id)) && request.resource.data.by == myEmail();
+        allow delete: if isExec() || leads(delivProject(id));
+      }
+      match /comments/{cid} {
+        allow read: if canReadFor(delivProject(id));
+        allow create: if canReadFor(delivProject(id)) && request.resource.data.by == myEmail();
+        allow update: if canWriteFor(delivProject(id)) || resource.data.by == myEmail();
+        allow delete: if isExec() || leads(delivProject(id)) || resource.data.by == myEmail();
+      }
+    }
+
     // ---------- announcements (club only; emails are sent by the server) ----------
     match /announcements/{id} {
       allow read: if isMember();

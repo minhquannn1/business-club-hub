@@ -1,28 +1,19 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { differenceInCalendarDays } from 'date-fns';
-import { Check, ExternalLink, Flag, Plus, Trash2, Trophy } from 'lucide-react';
+import { Check, ExternalLink, FileText, Flag, Plus, Trash2, Trophy } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { createCompetition, saveRounds } from '../lib/actions';
 import { COMP_STAGE_LABEL, COMPETITION_TEMPLATES } from '../lib/constants';
-import { fmtDate, toDate, uid } from '../lib/format';
-import type { Project, Round } from '../lib/types';
+import { fmtDate, uid } from '../lib/format';
+import type { Deliverable, Project, Round } from '../lib/types';
+import { STATUS_LABEL, useDeliverables } from '../lib/deliverables';
+import { DeliverableRow, dueOf } from './deliverables/DeliverablesPanel';
 import { Avatar, Empty, useConfirm, useRun } from '../components/ui';
 import { PageHead } from './Shell';
 import { ProjectForm } from './projectForm';
 
-/** "Today", "Tomorrow", "In 13 days", "3 days late", "Date TBC" */
-export function deadlineLabel(date: string): { text: string; tone: '' | 'soon' | 'late' } {
-  const d = toDate(date);
-  if (!d) return { text: 'Date TBC', tone: '' };
-  const diff = differenceInCalendarDays(d, new Date());
-  if (diff < -1) return { text: `${-diff} days late`, tone: 'late' };
-  if (diff === -1) return { text: 'Yesterday', tone: 'late' };
-  if (diff === 0) return { text: 'Today', tone: 'soon' };
-  if (diff === 1) return { text: 'Tomorrow', tone: 'soon' };
-  if (diff <= 7) return { text: `In ${diff} days`, tone: 'soon' };
-  return { text: `In ${diff} days`, tone: '' };
-}
+import { deadlineLabel } from './deadline';
+export { deadlineLabel };
 
 /** Rounds are kept in the order they happen; "date TBC" rounds stay where they were put. */
 export function nextRound(p: Project): Round | undefined {
@@ -45,6 +36,11 @@ export function CompetitionsPage() {
   const live = comps.filter((p) => p.stage !== 'done');
   const finished = comps.filter((p) => p.stage === 'done').sort((a, b) => (b.endDate || b.startDate || '').localeCompare(a.endDate || a.startDate || ''));
   const usedTemplates = new Set(comps.map((p) => p.title));
+  const { list: delivs } = useDeliverables(live.map((p) => p.id));
+  const openDelivs = delivs
+    .filter((d) => d.status !== 'submitted')
+    .sort((a, b) => (dueOf(a, store.projectMap.get(a.projectId)) || '9999').localeCompare(dueOf(b, store.projectMap.get(b.projectId)) || '9999'))
+    .slice(0, 8);
   const templates = COMPETITION_TEMPLATES.filter((t) => !usedTemplates.has(t.title));
 
   const deadlines = useMemo(
@@ -98,6 +94,21 @@ export function CompetitionsPage() {
         </section>
       )}
 
+      {openDelivs.length > 0 && (
+        <section className="panel" style={{ marginBottom: 20 }}>
+          <div className="panel-head">
+            <h2 className="h3">Deliverables to hand in</h2>
+          </div>
+          <ul className="list">
+            {openDelivs.map((d) => (
+              <li key={d.id}>
+                <DeliverableRow d={d} p={store.projectMap.get(d.projectId)} showProject={live.length > 1} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {live.length === 0 && templates.length === 0 && finished.length === 0 && (
         <div className="panel">
           <Empty title="No competitions yet">{store.isExec ? 'Add one with New competition. Put in its deadlines and the team, and everyone on it gets reminders.' : 'When the club enters a competition, it shows up here.'}</Empty>
@@ -107,7 +118,7 @@ export function CompetitionsPage() {
       {live.length > 0 && (
         <div className="comp-grid">
           {live.map((p) => (
-            <CompetitionCard key={p.id} p={p} />
+            <CompetitionCard key={p.id} p={p} delivs={delivs.filter((d) => d.projectId === p.id)} />
           ))}
         </div>
       )}
@@ -170,7 +181,7 @@ export function CompetitionsPage() {
   );
 }
 
-function CompetitionCard({ p }: { p: Project }) {
+function CompetitionCard({ p, delivs = [] }: { p: Project; delivs?: Deliverable[] }) {
   const store = useStore();
   const rounds = p.rounds ?? [];
   const done = rounds.filter((r) => r.done).length;
@@ -198,6 +209,11 @@ function CompetitionCard({ p }: { p: Project }) {
           <span style={{ width: `${(done / rounds.length) * 100}%` }} />
         </span>
       )}
+      {delivs.length > 0 && (
+        <span className="small faint comp-delivs">
+          <FileText size={13} aria-hidden="true" /> {delivs.filter((d) => d.status === 'submitted').length} of {delivs.length} deliverables submitted
+        </span>
+      )}
       <span className="comp-people">
         {people.length ? people.slice(0, 7).map((e) => <Avatar key={e} member={store.memberMap.get(e)} email={e} size={26} />) : <span className="small faint">No team yet</span>}
       </span>
@@ -206,7 +222,7 @@ function CompetitionCard({ p }: { p: Project }) {
 }
 
 /** Deadlines of one competition, shown on its project page. The lead and the exec team can edit. */
-export function RoundsPanel({ p, canEdit }: { p: Project; canEdit: boolean }) {
+export function RoundsPanel({ p, canEdit, deliverables = [] }: { p: Project; canEdit: boolean; deliverables?: Deliverable[] }) {
   const run = useRun();
   const confirm = useConfirm();
   const [name, setName] = useState('');
@@ -245,6 +261,13 @@ export function RoundsPanel({ p, canEdit }: { p: Project; canEdit: boolean }) {
                 <span className="round-main">
                   <span className="round-name">{r.name}</span>
                   <span className="small faint">{r.date ? fmtDate(r.date, 'EEEE d MMMM yyyy') : 'Date not announced yet'}</span>
+                  {deliverables
+                    .filter((d) => d.roundId === r.id)
+                    .map((d) => (
+                      <Link key={d.id} to={`/app/competitions/${p.id}/d/${d.id}`} className="round-deliv">
+                        <FileText size={13} aria-hidden="true" /> {d.title} <span className={`deliv-status ${d.status}`}>{STATUS_LABEL[d.status]}</span>
+                      </Link>
+                    ))}
                 </span>
                 {!r.done && <span className={`chip ${dl.tone}`}>{dl.text}</span>}
                 {canEdit && (

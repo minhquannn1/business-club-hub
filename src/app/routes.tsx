@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Shell } from './Shell';
 import { Overview } from './Overview';
@@ -13,6 +14,9 @@ import { Login } from './Login';
 import { ImportPage } from './planning';
 import { CompetitionsPage } from './Competitions';
 
+// the document editor and its export libraries load only when a deliverable is opened
+const DeliverablePage = lazy(() => import('./deliverables/DocPage'));
+
 /** The signed-in workspace, loaded as its own chunk so the public site stays light. */
 export default function WorkspaceRoutes({ login }: { login?: boolean }) {
   if (login) return <Login />;
@@ -24,6 +28,14 @@ export default function WorkspaceRoutes({ login }: { login?: boolean }) {
         <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="competitions" element={<CompetitionsPage />} />
         <Route path="competitions/:id" element={<ProjectDetail />} />
+        <Route
+          path="competitions/:id/d/:did"
+          element={
+            <Suspense fallback={<div className="page"><p className="muted">Opening the document...</p></div>}>
+              <DeliverablePage />
+            </Suspense>
+          }
+        />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="meetings" element={<MeetingsPage />} />
         <Route path="meetings/:id" element={<MeetingPage />} />

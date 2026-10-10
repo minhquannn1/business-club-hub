@@ -2069,3 +2069,163 @@ button.welcome-step:hover {
     opacity: 1;
   }
 }
+
+/* ---------- small shared bits ---------- */
+.is-busy {
+  opacity: 0.6;
+  pointer-events: none;
+  cursor: progress;
+}
+.btn-xs {
+  height: 26px;
+  padding: 0 8px;
+  font-size: 12.5px;
+}
+.btn-xs.btn-icon {
+  width: 26px;
+}
+.btn-xs svg {
+  width: 14px;
+  height: 14px;
+}
+.select-sm,
+.input-sm {
+  min-height: 32px;
+  height: 32px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  font-size: 13px;
+}
+.btn.is-on {
+  background: var(--marker-soft);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.btn .count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ---------- deliverables lists ---------- */
+.deliv-row {
+  gap: 12px;
+}
+.deliv-icon {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--ink-2);
+}
+.deliv-icon.submitted {
+  background: var(--pos-soft);
+  color: var(--pos);
+}
+.deliv-icon.review,
+.deliv-icon.final {
+  background: var(--marker-soft);
+  color: var(--accent);
+}
+.deliv-status.drafting {
+  color: var(--ink);
+}
+.chip.deliv-status.review,
+.chip.deliv-status.final {
+  background: var(--marker-soft);
+  color: var(--accent);
+}
+.chip.deliv-status.submitted {
+  background: var(--pos-soft);
+  color: var(--pos);
+}
+.deliv-row .chip {
+  flex: none;
+}
+.round-deliv {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 560;
+  color: var(--ink);
+  text-decoration: none;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+.round-deliv:hover {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+.round-deliv .deliv-status {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.round-deliv .deliv-status.submitted {
+  color: var(--pos);
+}
+.comp-delivs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tpl-head {
+  margin: 4px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.tpl-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.tpl {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s, background-color 0.12s;
+}
+@media (hover: hover) and (pointer: fine) {
+  .tpl:hover {
+    border-color: var(--ink-3);
+    background: var(--surface-2);
+  }
+}
+.tpl .title {
+  font-weight: 600;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.tpl .chip {
+  height: 20px;
+  font-size: 11.5px;
+}
+.tpl-icon {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--marker-soft);
+  color: var(--accent);
+}

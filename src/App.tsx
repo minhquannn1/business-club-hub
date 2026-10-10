@@ -18,7 +18,7 @@ function Gate({ children }: { children: ReactNode }) {
   const { access } = useStore();
   const loc = useLocation();
   if (access === 'loading') return <Loading />;
-  if (access !== 'ok') return <Navigate to="/login" replace state={{ from: loc.pathname }} />;
+  if (access !== 'ok') return <Navigate to="/login" replace state={{ from: loc.pathname + loc.search }} />;
   return <>{children}</>;
 }
 

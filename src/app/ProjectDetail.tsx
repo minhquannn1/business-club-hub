@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, MoreHorizontal, Pencil, Plus, Star, Trash2, Wallet } from 'lucide-react';
 import { useStore, memberName } from '../lib/store';
 import { createTask, deleteProject, updateProject } from '../lib/actions';
@@ -15,14 +15,26 @@ import { TaskForm, TaskRow, sortTasks } from './tasks';
 import { LedgerEntryForm } from './ledgerEntry';
 import { taskProgress } from './Projects';
 import { ProjectLinks } from './projectLinks';
+import { useDeliverables } from '../lib/deliverables';
+import { DeliverablesPanel } from './deliverables/DeliverablesPanel';
 
-type Tab = 'overview' | 'tasks' | 'money' | 'meetings' | 'review';
+type Tab = 'overview' | 'deliverables' | 'tasks' | 'money' | 'meetings' | 'review';
 
 export function ProjectDetail() {
   const { id = '' } = useParams();
   const store = useStore();
   const p = store.projectMap.get(id);
-  const [tab, setTab] = useState<Tab>('overview');
+  const [params, setParams] = useSearchParams();
+  const [tab, setTabState] = useState<Tab>(() => (params.get('tab') as Tab) || 'overview');
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    setParams(t === 'overview' ? {} : { tab: t }, { replace: true });
+  };
+  const deliverables = useDeliverables(p?.kind === 'competition' ? [id] : []);
+  const urlTab = params.get('tab') as Tab | null;
+  useEffect(() => {
+    if (urlTab) setTabState(urlTab);
+  }, [urlTab]);
   const [editing, setEditing] = useState(false);
   const [taskOpen, setTaskOpen] = useState<Task | 'new' | null>(null);
   const [entry, setEntry] = useState<'in' | 'out' | null>(null);
@@ -58,6 +70,7 @@ export function ProjectDetail() {
 
   const tabs: { key: Tab; label: string; count?: number }[] = [
     { key: 'overview', label: 'Overview' },
+    ...(isComp ? [{ key: 'deliverables' as Tab, label: 'Deliverables', count: deliverables.list.filter((d) => d.status !== 'submitted').length }] : []),
     { key: 'tasks', label: store.isGuest ? 'My tasks' : 'Tasks', count: tasks.filter((t) => t.status !== 'done').length },
     ...(store.isGuest ? [] : [{ key: 'money' as Tab, label: 'Money' }]),
     { key: 'meetings', label: 'Meetings', count: meetings.length },
@@ -151,7 +164,7 @@ export function ProjectDetail() {
 
           {tab === 'overview' && (
             <div className="section-gap">
-              {isComp && <RoundsPanel p={p} canEdit={canEdit} />}
+              {isComp && <RoundsPanel p={p} canEdit={canEdit} deliverables={deliverables.list} />}
               <section className="panel">
                 <div className="panel-head">
                   <h2 className="h3">Next up</h2>
@@ -196,6 +209,8 @@ export function ProjectDetail() {
               )}
             </div>
           )}
+
+          {tab === 'deliverables' && isComp && <DeliverablesPanel p={p} list={deliverables.list} loading={deliverables.loading} />}
 
           {tab === 'tasks' && <ProjectTasks tasks={tasks} canEdit={canEdit} projectId={p.id} onOpen={setTaskOpen} />}
 
