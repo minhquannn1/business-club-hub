@@ -105,6 +105,17 @@ export async function updateTask(prev: Task, patch: Partial<Task>) {
   else if (Object.keys(patch).length) log('updated', 'task', prev.id, patch.title ?? prev.title);
 }
 
+/** Exec: give someone else every open task of one member (when roles change or someone leaves). */
+export async function handOverTasks(tasks: Task[], toEmail: string, fromName: string, toName: string) {
+  const now = Date.now();
+  for (let i = 0; i < tasks.length; i += 400) {
+    const batch = writeBatch(db);
+    for (const t of tasks.slice(i, i + 400)) batch.update(doc(db, 'tasks', t.id), { assigneeEmail: toEmail, updatedAt: now });
+    await batch.commit();
+  }
+  log('gave', 'member', toEmail, toName, `${tasks.length} open ${tasks.length === 1 ? 'task' : 'tasks'} from ${fromName}`);
+}
+
 export async function deleteTask(t: Task) {
   await deleteDoc(doc(db, 'tasks', t.id));
   log('deleted', 'task', t.id, t.title);

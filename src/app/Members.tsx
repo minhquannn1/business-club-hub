@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Copy, ImageUp, Mail, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, Copy, ImageUp, Mail, Plus, Search, Trash2 } from 'lucide-react';
 import { useStore } from '../lib/store';
-import { compressSquare, inviteMember, removeMember, updateMember } from '../lib/actions';
+import { compressSquare, handOverTasks, inviteMember, removeMember, updateMember } from '../lib/actions';
 import { OWNER_EMAIL, ROLES, TEAMS } from '../lib/constants';
 import { ago, initials } from '../lib/format';
 import { emailReady, notify } from '../lib/notify';
@@ -132,6 +132,7 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
   const [f, setF] = useState({ name: member.name ?? '', title: member.title ?? '', team: member.team ?? '', role: member.role, bio: member.bio ?? '', showOnSite: !!member.showOnSite, emailOff: !!member.emailOff });
   const [mailReady, setMailReady] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [handTo, setHandTo] = useState('');
   useEffect(() => {
     if (self) emailReady().then(setMailReady);
   }, [self]);
@@ -322,6 +323,41 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
             <p className="small muted">
               {openTasks.length} open {openTasks.length === 1 ? 'task' : 'tasks'}
             </p>
+          )}
+          {asExec && openTasks.length > 0 && (
+            <div className="handover">
+              <label htmlFor="handover-to" className="small">
+                Give {self ? 'my' : 'their'} {openTasks.length} open {openTasks.length === 1 ? 'task' : 'tasks'} to
+              </label>
+              <select id="handover-to" className="select" value={handTo} onChange={(e) => setHandTo(e.target.value)}>
+                <option value="">Pick someone</option>
+                {store.members
+                  .filter((m) => m.id !== member.id)
+                  .map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name ? `${m.name} (${m.email})` : m.email}
+                    </option>
+                  ))}
+              </select>
+              <button
+                type="button"
+                className="btn btn-sm"
+                disabled={!handTo}
+                onClick={async () => {
+                  const to = store.memberMap.get(handTo);
+                  if (!to) return;
+                  const ok = await confirm({
+                    title: `Give ${openTasks.length} ${openTasks.length === 1 ? 'task' : 'tasks'} to ${to.name || to.email}?`,
+                    body: 'They become the person in charge. Done tasks stay where they are.',
+                    confirm: 'Hand over',
+                  });
+                  if (ok) await run(() => handOverTasks(openTasks, to.id, member.name || member.email, to.name || to.email), `Handed over to ${to.name || to.email}`);
+                  setHandTo('');
+                }}
+              >
+                <ArrowRightLeft /> Hand over
+              </button>
+            </div>
           )}
         </div>
       )}
