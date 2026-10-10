@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { addDays, format } from 'date-fns';
-import { Megaphone, Plus } from 'lucide-react';
+import { CheckSquare, FolderKanban, Megaphone, Plus, Smartphone, UserRound } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { fmtRange, money, todayISO } from '../lib/format';
 import { STAGE_LABEL } from '../lib/constants';
@@ -61,7 +61,7 @@ export function Overview() {
           </h1>
           <p className="muted">{format(new Date(), 'EEEE d MMMM')}</p>
         </div>
-        <div className="page-actions">
+        <div className="page-actions ov-actions">
           <button className="btn" onClick={() => setOpen('new')}>
             <Plus /> Task
           </button>
@@ -77,6 +77,7 @@ export function Overview() {
       </header>
 
       <AnnouncementsPanel />
+      <WelcomeCard />
 
       <div className="figures">
         <Link to="/app/tasks" className="figure">
@@ -89,7 +90,7 @@ export function Overview() {
         </Link>
         <Link to="/app/projects" className="figure">
           <span className="val num">{running.length}</span>
-          <span className="lbl">Projects in motion</span>
+          <span className="lbl">Active projects</span>
         </Link>
         <Link to="/app/finance" className="figure">
           <span className={`val num ${balance < 0 ? 'neg' : ''}`}>{money(balance, { compact: Math.abs(balance) >= 10_000_000 })}</span>
@@ -205,5 +206,74 @@ export function Overview() {
       {open && <TaskForm task={open === 'new' ? undefined : open} onClose={() => setOpen(null)} />}
       {announcing && <AnnouncementModal onClose={() => setAnnouncing(false)} />}
     </div>
+  );
+}
+
+const DAY = 86400000;
+
+/** A short "start here" for people in their first month. Hidden once dismissed. */
+function WelcomeCard() {
+  const store = useStore();
+  const key = `welcome.done.${store.myEmail}`;
+  const [hidden, setHidden] = useState(() => {
+    try {
+      return localStorage.getItem(key) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const me = store.me;
+  if (hidden || !me || (me.joinedAt && Date.now() - me.joinedAt > 30 * DAY)) return null;
+  const dismiss = () => {
+    try {
+      localStorage.setItem(key, '1');
+    } catch {
+      /* storage blocked: it just shows again next time */
+    }
+    setHidden(true);
+  };
+  const steps = [
+    { icon: <CheckSquare />, title: 'Check your tasks', text: "Anything with your name on it is in Tasks. Tick it off when it's done.", to: '/app/tasks' },
+    { icon: <FolderKanban />, title: "See what's coming up", text: 'Every booth and event is in Projects, with its plan and budget.', to: '/app/projects' },
+    { icon: <UserRound />, title: 'Set up your profile', text: 'Add a photo and choose which emails you get.', onClick: () => window.dispatchEvent(new Event('open-profile')) },
+    { icon: <Smartphone />, title: 'Put it on your phone', text: 'In your browser menu, tap Add to Home Screen. It opens like an app.' },
+  ];
+  return (
+    <section className="panel welcome" aria-labelledby="welcome-title">
+      <div className="panel-head">
+        <h2 id="welcome-title" className="h3">
+          New here? Start with these
+        </h2>
+        <button className="btn btn-sm btn-ghost" onClick={dismiss}>
+          Got it
+        </button>
+      </div>
+      <div className="welcome-grid">
+        {steps.map((st) => {
+          const inner = (
+            <>
+              <span className="welcome-icon">{st.icon}</span>
+              <span className="welcome-text">
+                <strong>{st.title}</strong>
+                <span>{st.text}</span>
+              </span>
+            </>
+          );
+          return st.to ? (
+            <Link key={st.title} to={st.to} className="welcome-step">
+              {inner}
+            </Link>
+          ) : st.onClick ? (
+            <button key={st.title} className="welcome-step" onClick={st.onClick}>
+              {inner}
+            </button>
+          ) : (
+            <div key={st.title} className="welcome-step">
+              {inner}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

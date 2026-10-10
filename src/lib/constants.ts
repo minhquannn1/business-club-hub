@@ -7,10 +7,10 @@ export const STAGES: { key: Stage; label: string; hint: string }[] = [
   { key: 'idea', label: 'Idea', hint: 'Worth talking about' },
   { key: 'planning', label: 'Planning', hint: 'Owner, dates and budget being set' },
   { key: 'active', label: 'Running', hint: 'Happening now' },
-  { key: 'done', label: 'Wrapped', hint: 'Finished and reviewed' },
+  { key: 'done', label: 'Done', hint: 'Finished and reviewed' },
 ];
 
-export const STAGE_LABEL: Record<Stage, string> = { idea: 'Idea', planning: 'Planning', active: 'Running', done: 'Wrapped' };
+export const STAGE_LABEL: Record<Stage, string> = { idea: 'Idea', planning: 'Planning', active: 'Running', done: 'Done' };
 
 export const TASK_STATUSES: { key: TaskStatus; label: string }[] = [
   { key: 'todo', label: 'To do' },

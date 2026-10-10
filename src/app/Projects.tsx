@@ -68,7 +68,7 @@ export function ProjectsPage() {
     <div className={`page ${view === 'board' || view === 'timeline' ? 'page-full' : ''}`}>
       <PageHead
         title="Projects and events"
-        sub={`${store.projects.filter((p) => p.stage !== 'done').length} in motion, ${store.projects.filter((p) => p.stage === 'done').length} wrapped`}
+        sub={`${store.projects.filter((p) => p.stage !== 'done').length} active, ${store.projects.filter((p) => p.stage === 'done').length} done`}
         actions={
           <>
             <Seg<View>

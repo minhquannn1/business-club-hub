@@ -58,7 +58,7 @@ export function ProjectDetail() {
     { key: 'tasks', label: 'Tasks', count: tasks.filter((t) => t.status !== 'done').length },
     { key: 'money', label: 'Money' },
     { key: 'meetings', label: 'Meetings', count: meetings.length },
-    { key: 'review', label: 'Wrap-up' },
+    { key: 'review', label: 'Review' },
   ];
 
   return (
@@ -150,18 +150,6 @@ export function ProjectDetail() {
             <div className="section-gap">
               <section className="panel">
                 <div className="panel-head">
-                  <h2 className="h3">Goals</h2>
-                </div>
-                <div className="panel-body">{p.goals ? <p className="prose">{p.goals}</p> : <p className="faint">No goals written down yet.{canEdit && ' Add a couple of numbers you can check afterwards.'}</p>}</div>
-              </section>
-              <section className="panel">
-                <div className="panel-head">
-                  <h2 className="h3">Details</h2>
-                </div>
-                <div className="panel-body">{p.description ? <p className="prose">{p.description}</p> : <p className="faint">Nothing here yet.</p>}</div>
-              </section>
-              <section className="panel">
-                <div className="panel-head">
                   <h2 className="h3">Next up</h2>
                   <button className="btn btn-sm btn-ghost" onClick={() => setTab('tasks')}>
                     All tasks
@@ -176,6 +164,32 @@ export function ProjectDetail() {
                   <Empty title="No open tasks">{canEdit ? 'Break the work into tasks and give each one an owner and a date.' : null}</Empty>
                 )}
               </section>
+              {p.goals ? (
+                <section className="panel">
+                  <div className="panel-head">
+                    <h2 className="h3">Goals</h2>
+                  </div>
+                  <div className="panel-body">
+                    <p className="prose">{p.goals}</p>
+                  </div>
+                </section>
+              ) : null}
+              {p.description ? (
+                <section className="panel">
+                  <div className="panel-head">
+                    <h2 className="h3">Details</h2>
+                  </div>
+                  <div className="panel-body">
+                    <p className="prose">{p.description}</p>
+                  </div>
+                </section>
+              ) : null}
+              {canEdit && (!p.goals || !p.description) && (
+                <button className="add-hint" onClick={() => setEditing(true)}>
+                  <Plus /> {!p.goals && !p.description ? 'Add goals and details' : !p.goals ? 'Add goals' : 'Add details'}
+                  <span>Goals are a couple of numbers you can check afterwards. Details are the plan: what, where, who.</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -455,14 +469,14 @@ function Review({ projectId, canEdit }: { projectId: string; canEdit: boolean })
     setDirty(true);
   };
   const save = async () => {
-    const ok = await run(() => updateProject(p, { review: r }, 'wrote the wrap-up for'), 'Wrap-up saved');
+    const ok = await run(() => updateProject(p, { review: r }, 'wrote the review for'), 'Review saved');
     if (ok !== undefined) setDirty(false);
   };
   return (
     <section className="panel">
       <div className="panel-head">
         <div>
-          <h2 className="h3">Wrap-up</h2>
+          <h2 className="h3">Review</h2>
           <p className="small muted">Write this while it's fresh, so whoever runs it next year starts ahead.</p>
         </div>
       </div>
@@ -500,7 +514,7 @@ function Review({ projectId, canEdit }: { projectId: string; canEdit: boolean })
         {canEdit && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
             <button className="btn btn-primary" disabled={!dirty} onClick={save}>
-              Save wrap-up
+              Save review
             </button>
           </div>
         )}

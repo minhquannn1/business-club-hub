@@ -17,6 +17,9 @@ import {
   Wallet,
   X,
   ExternalLink,
+  Megaphone,
+  Plus,
+  ReceiptText,
 } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { setActor } from '../lib/actions';
@@ -24,6 +27,9 @@ import { Avatar, useMenu } from '../components/ui';
 import { LogoMark } from '../components/Art';
 import { CommandPalette } from './CommandPalette';
 import { ProfileModal } from './Members';
+import { TaskForm } from './tasks';
+import { LedgerEntryForm } from './ledgerEntry';
+import { AnnouncementModal } from './announcements';
 import '../styles/app.css';
 
 function getTheme(): 'light' | 'dark' | 'system' {
@@ -50,12 +56,20 @@ export function Shell() {
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
   const [profile, setProfile] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [quick, setQuick] = useState<'task' | 'expense' | 'announce' | null>(null);
   const loc = useLocation();
   const nav = useNavigate();
   const menu = useMenu();
   const userBtn = useRef<HTMLButtonElement>(null);
 
   useEffect(() => setActor(myEmail), [myEmail]);
+  // other pages can ask for the profile window (the welcome card does)
+  useEffect(() => {
+    const h = () => setProfile(true);
+    window.addEventListener('open-profile', h);
+    return () => window.removeEventListener('open-profile', h);
+  }, []);
   useEffect(() => setDrawer(false), [loc.pathname]);
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -150,6 +164,65 @@ export function Shell() {
         </div>
         <Outlet />
       </div>
+      <nav className="tabbar" aria-label="Quick navigation">
+        <NavLink to="/app" end className="tab">
+          <LayoutDashboard />
+          <span>Home</span>
+        </NavLink>
+        <NavLink to="/app/tasks" className="tab">
+          <CheckSquare />
+          <span>Tasks</span>
+          {!!myOpen && <span className="tab-badge">{myOpen}</span>}
+        </NavLink>
+        <button className="tab tab-add" onClick={() => setAdding(true)} aria-label="Add something">
+          <Plus />
+        </button>
+        <NavLink to="/app/projects" className="tab">
+          <FolderKanban />
+          <span>Projects</span>
+        </NavLink>
+        <button className="tab" onClick={() => setDrawer(true)}>
+          <MenuIcon />
+          <span>More</span>
+        </button>
+      </nav>
+      {adding && (
+        <div className="sheet-overlay" onMouseDown={(e) => e.target === e.currentTarget && setAdding(false)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label="Add something">
+            <span className="sheet-grip" aria-hidden="true" />
+            {[
+              { key: 'task', icon: <CheckSquare />, label: 'Task', hint: 'Something someone needs to do', show: true },
+              { key: 'notes', icon: <NotebookPen />, label: 'Meeting notes', hint: 'What was decided and who does what', show: true },
+              { key: 'expense', icon: <ReceiptText />, label: 'Money spent or received', hint: 'Goes into the club ledger', show: isExec },
+              { key: 'announce', icon: <Megaphone />, label: 'Announcement', hint: 'Shows on everyone\'s Overview, can be emailed', show: isExec },
+            ]
+              .filter((o) => o.show)
+              .map((o) => (
+                <button
+                  key={o.key}
+                  className="sheet-item"
+                  onClick={() => {
+                    setAdding(false);
+                    if (o.key === 'notes') nav('/app/meetings/new');
+                    else setQuick(o.key as 'task' | 'expense' | 'announce');
+                  }}
+                >
+                  <span className="sheet-icon">{o.icon}</span>
+                  <span className="sheet-text">
+                    <strong>{o.label}</strong>
+                    <span>{o.hint}</span>
+                  </span>
+                </button>
+              ))}
+            <button className="btn sheet-cancel" onClick={() => setAdding(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      {quick === 'task' && <TaskForm onClose={() => setQuick(null)} />}
+      {quick === 'expense' && <LedgerEntryForm onClose={() => setQuick(null)} />}
+      {quick === 'announce' && <AnnouncementModal onClose={() => setQuick(null)} />}
       {palette && <CommandPalette onClose={() => setPalette(false)} />}
       {profile && me && <ProfileModal member={me} self onClose={() => setProfile(false)} />}
       {menu.node}
