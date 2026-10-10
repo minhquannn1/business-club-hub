@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link, NavLink, useNavigate, useParams } from 'react-router-dom';
-import { BookOpen, Download, MoreHorizontal, Pencil, Plus, Table2, Trash2, Wallet } from 'lucide-react';
+import { BookOpen, Download, MoreHorizontal, Pencil, Plus, Table2, Trash2, Upload, Wallet } from 'lucide-react';
 import { useStore, memberName } from '../lib/store';
-import { createSheet, deleteSheet, updateSheet } from '../lib/actions';
+import { createSheet, deleteSheet, importEvents, updateSheet, type ImportedEvent } from '../lib/actions';
 import { fmtDate, money } from '../lib/format';
 import { useLedger, useWorkbook } from '../lib/workbook';
 import { colToLetters, isErr, offsetAllRows, FUNCTIONS } from '../lib/formula';
@@ -21,6 +21,7 @@ export function FinancePage() {
   const [entry, setEntry] = useState<'in' | 'out' | null>(null);
   const [help, setHelp] = useState(false);
   const [renaming, setRenaming] = useState<Sheet | null>(null);
+  const [importing, setImporting] = useState(false);
   const wb = useWorkbook();
   const run = useRun();
   const confirm = useConfirm();
@@ -80,6 +81,11 @@ export function FinancePage() {
             <button className="btn btn-ghost" onClick={() => setHelp(true)}>
               <BookOpen /> Formulas
             </button>
+            {store.isExec && !sheet && (
+              <button className="btn btn-ghost" onClick={() => setImporting(true)}>
+                <Upload /> Import events
+              </button>
+            )}
             {store.sheets.length > 0 && (
               <button className="btn" onClick={exportXlsx}>
                 <Download /> Export to Excel
@@ -137,6 +143,7 @@ export function FinancePage() {
       )}
 
       {newSheet && <NewSheetModal onClose={() => setNewSheet(false)} />}
+      {importing && <ImportModal onClose={() => setImporting(false)} />}
       {entry && <LedgerEntryForm direction={entry} onClose={() => setEntry(null)} />}
       {help && <FormulaHelp onClose={() => setHelp(false)} />}
       {renaming && <RenameSheet sheet={renaming} onClose={() => setRenaming(null)} />}
@@ -474,6 +481,80 @@ function FormulaHelp({ onClose }: { onClose: () => void }) {
           Shortcuts: arrows move, Shift+arrows select, Enter edits, Tab moves right, Delete clears, Ctrl+C / Ctrl+V copy and paste (also from Excel or Google Sheets), Ctrl+Z undoes your last change.
         </p>
       </div>
+    </Modal>
+  );
+}
+
+function ImportModal({ onClose }: { onClose: () => void }) {
+  const store = useStore();
+  const run = useRun();
+  const [text, setText] = useState('');
+  const parsed = useMemo(() => {
+    if (!text.trim()) return null;
+    try {
+      const v = JSON.parse(text) as ImportedEvent[];
+      if (!Array.isArray(v) || v.some((e) => !e.title || !Array.isArray(e.rows))) return { error: 'Each event needs a title and a list of rows.' };
+      return { events: v };
+    } catch {
+      return { error: "That isn't valid import data." };
+    }
+  }, [text]);
+  const events: ImportedEvent[] = (parsed && 'events' in parsed && parsed.events) || [];
+  const sum = (e: ImportedEvent, dir: 'In' | 'Out') => e.rows.filter((r) => r.dir === dir).reduce((s, r) => s + (Number(r.amt) || 0), 0);
+  const go = async () => {
+    const ok = await run(async () => {
+      await importEvents(events, store.sheets.length + store.projects.length + 10);
+      return true;
+    }, `Imported ${events.length} ${events.length === 1 ? 'event' : 'events'}`);
+    if (ok) onClose();
+  };
+  return (
+    <Modal
+      title="Import events"
+      onClose={onClose}
+      footer={
+        <>
+          <span className="spacer" />
+          <button className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn btn-primary" disabled={!events.length} onClick={go}>
+            Import {events.length || ''} {events.length === 1 ? 'event' : 'events'}
+          </button>
+        </>
+      }
+    >
+      <p className="muted" style={{ marginBottom: 12 }}>
+        Each event becomes a finished project with its own ledger sheet. Paste the import data below.
+      </p>
+      <textarea className="textarea mono" style={{ minHeight: 120, fontSize: 12 }} value={text} onChange={(e) => setText(e.target.value)} placeholder="[ { &quot;title&quot;: ..., &quot;rows&quot;: [...] } ]" aria-label="Import data" />
+      {parsed && 'error' in parsed && (
+        <p className="notice" role="alert" style={{ marginTop: 10 }}>
+          {parsed.error}
+        </p>
+      )}
+      {events.length > 0 && (
+        <table className="import-preview">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>In</th>
+              <th>Out</th>
+              <th>Profit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.map((e) => (
+              <tr key={e.title}>
+                <td>{e.title}</td>
+                <td>{money(sum(e, 'In'))}</td>
+                <td>{money(sum(e, 'Out'))}</td>
+                <td>{money(sum(e, 'In') - sum(e, 'Out'))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </Modal>
   );
 }

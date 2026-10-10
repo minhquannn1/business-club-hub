@@ -408,3 +408,59 @@ export async function compressSquare(file: File, side = 480): Promise<string> {
     URL.revokeObjectURL(url);
   }
 }
+
+/* ---------------- import ---------------- */
+
+export interface ImportedEvent {
+  title: string;
+  kind: 'event' | 'project';
+  color?: string;
+  startDate?: string;
+  endDate?: string;
+  location?: string;
+  summary?: string;
+  /** ledger rows; amounts in VND as plain digits */
+  rows: { desc: string; dir: 'In' | 'Out'; cat?: string; amt?: string; note?: string }[];
+}
+
+/** Creates a finished project and its own ledger sheet for each event. */
+export async function importEvents(events: ImportedEvent[], firstOrder: number) {
+  const now = Date.now();
+  let i = 0;
+  for (const e of events) {
+    const inSum = e.rows.filter((r) => r.dir === 'In').reduce((s, r) => s + (Number(r.amt) || 0), 0);
+    const outSum = e.rows.filter((r) => r.dir === 'Out').reduce((s, r) => s + (Number(r.amt) || 0), 0);
+    const projectId = await createProject({
+      title: e.title,
+      kind: e.kind,
+      summary: e.summary ?? '',
+      description: '',
+      goals: '',
+      stage: 'done',
+      leadEmail: actor,
+      teamEmails: [],
+      startDate: e.startDate ?? '',
+      endDate: e.endDate ?? '',
+      location: e.location ?? '',
+      color: e.color || '#1E3FD8',
+      budgetPlanned: 0,
+      isPublic: false,
+      publicBlurb: '',
+      review: { notes: `Imported from the club's P/L sheet. Money in ${inSum.toLocaleString('en-US')} VND, money out ${outSum.toLocaleString('en-US')} VND, profit ${(inSum - outSum).toLocaleString('en-US')} VND.` },
+      order: firstOrder + i,
+    });
+    const sheet: Omit<Sheet, 'id'> = { name: e.title, order: firstOrder + i, isLedger: true, columns: ledgerColumns(), createdAt: now + i, createdBy: actor };
+    const ref = await addDoc(collection(db, 'sheets'), sheet);
+    const batch = writeBatch(db);
+    const n = e.rows.length;
+    const put = (k: number, cells: Record<string, string>) =>
+      batch.set(doc(collection(db, 'sheets', ref.id, 'rows')), { order: (k + 1) * 1024, cells, updatedAt: now, updatedBy: actor });
+    e.rows.forEach((r, k) => put(k, { desc: r.desc, dir: r.dir, cat: r.cat ?? '', proj: projectId, amt: r.amt ?? '', note: r.note ?? '' }));
+    put(n, {});
+    put(n + 1, { desc: 'Profit', amt: `=SUMIF(C1:C${n},"In",F1:F${n})-SUMIF(C1:C${n},"Out",F1:F${n})` });
+    for (let k = n + 2; k < n + 12; k++) put(k, {});
+    await batch.commit();
+    log('created', 'sheet', ref.id, e.title, 'imported');
+    i++;
+  }
+}

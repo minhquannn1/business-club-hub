@@ -1412,3 +1412,25 @@ button.row-link {
   opacity: 0.6;
   pointer-events: none;
 }
+
+.import-preview {
+  width: 100%;
+  margin-top: 14px;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  font-variant-numeric: tabular-nums;
+}
+.import-preview th,
+.import-preview td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--rule-soft);
+  text-align: right;
+}
+.import-preview th:first-child,
+.import-preview td:first-child {
+  text-align: left;
+}
+.import-preview th {
+  font-weight: 600;
+  color: var(--ink-2);
+}
