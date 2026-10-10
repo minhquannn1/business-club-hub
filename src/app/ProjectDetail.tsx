@@ -103,14 +103,14 @@ export function ProjectDetail() {
                 <Pencil /> Edit
               </button>
             )}
-            {store.isExec && (
+            {(store.isAdmin || (store.isExec && p.isPublic)) && (
               <button
                 className="btn btn-icon"
                 aria-label="More actions"
                 onClick={(e) =>
                   menu.open(e.currentTarget, [
                     ...(p.isPublic ? [{ label: 'View on public website', icon: <ExternalLink />, onSelect: () => window.open(`/p/${p.id}`, '_blank') }] : []),
-                    {
+                    ...(!store.isAdmin ? [] : [{
                       label: 'Delete project',
                       icon: <Trash2 />,
                       danger: true,
@@ -127,7 +127,7 @@ export function ProjectDetail() {
                           nav('/app/projects');
                         }
                       },
-                    },
+                    }]),
                   ])
                 }
               >
@@ -204,7 +204,7 @@ export function ProjectDetail() {
               <section className="panel">
                 <div className="panel-head">
                   <h2 className="h3">Ledger entries for this project</h2>
-                  {store.isExec && (
+                  {store.canFinance && (
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button className="btn btn-sm" onClick={() => setEntry('in')}>
                         Record income

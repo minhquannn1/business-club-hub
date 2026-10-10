@@ -51,14 +51,14 @@ export function Login() {
               <p>
                 <strong>{user?.email}</strong> isn't on the member list yet.
               </p>
-              <p className="muted">Ask someone on the exec team to add this email under Members, then sign in again. If you used another Google account for the club, switch to it.</p>
+              <p className="muted">Ask a club admin to add this email under Members, then sign in again. If you used another Google account for the club, switch to it.</p>
               <button className="btn" onClick={() => signOut()}>
                 Use a different account
               </button>
             </div>
           ) : (
             <div className="login-body">
-              <p className="muted">Projects, tasks, meetings and the club's money in one place. Sign in with the Google account the exec team added.</p>
+              <p className="muted">Projects, tasks, meetings and the club's money in one place. Sign in with the Google account the club added.</p>
               <button className="btn btn-primary google-btn" onClick={() => signIn()}>
                 <span className="google-chip">
                   <GoogleMark />

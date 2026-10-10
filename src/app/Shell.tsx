@@ -53,7 +53,7 @@ function applyTheme(t: 'light' | 'dark' | 'system') {
 
 export function Shell() {
   const store = useStore();
-  const { me, myEmail, site, isExec, isGuest, tasks, signOut } = store;
+  const { me, myEmail, site, isExec, isGuest, canFinance, canWebsite, tasks, signOut } = store;
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
   const [profile, setProfile] = useState(false);
@@ -85,7 +85,7 @@ export function Shell() {
 
   const myOpen = useMemo(() => tasks.filter((t) => t.assigneeEmail === myEmail && t.status !== 'done').length, [tasks, myEmail]);
 
-  const links: { to: string; label: string; icon: ReactNode; badge?: number; end?: boolean; exec?: boolean; club?: boolean }[] = [
+  const links: { to: string; label: string; icon: ReactNode; badge?: number; end?: boolean; website?: boolean; club?: boolean }[] = [
     { to: '/app', label: 'Overview', icon: <LayoutDashboard />, end: true },
     { to: '/app/projects', label: 'Projects', icon: <FolderKanban /> },
     { to: '/app/competitions', label: 'Competitions', icon: <Trophy /> },
@@ -94,7 +94,7 @@ export function Shell() {
     { to: '/app/finance', label: 'Finance', icon: <Wallet />, club: true },
     { to: '/app/members', label: 'Members', icon: <Users />, club: true },
     { to: '/app/activity', label: 'Activity', icon: <ActivityIcon />, club: true },
-    { to: '/app/website', label: 'Website', icon: <Globe />, exec: true },
+    { to: '/app/website', label: 'Website', icon: <Globe />, website: true },
   ];
 
   const theme = getTheme();
@@ -129,7 +129,7 @@ export function Shell() {
       </button>
       <nav className="side-nav" aria-label="Workspace">
         {links
-          .filter((l) => (!l.exec || isExec) && (!l.club || !isGuest))
+          .filter((l) => (!l.website || canWebsite) && (!l.club || !isGuest))
           .map((l) => (
             <NavLink key={l.to} to={l.to} end={l.end} className="side-link">
               {l.icon}
@@ -195,7 +195,7 @@ export function Shell() {
             {[
               { key: 'task', icon: <CheckSquare />, label: 'Task', hint: 'Something someone needs to do', show: true },
               { key: 'notes', icon: <NotebookPen />, label: 'Meeting notes', hint: 'What was decided and who does what', show: !isGuest },
-              { key: 'expense', icon: <ReceiptText />, label: 'Money spent or received', hint: 'Goes into the club ledger', show: isExec },
+              { key: 'expense', icon: <ReceiptText />, label: 'Money spent or received', hint: 'Goes into the club ledger', show: canFinance },
               { key: 'announce', icon: <Megaphone />, label: 'Announcement', hint: 'Shows on everyone\'s Overview, can be emailed', show: isExec },
             ]
               .filter((o) => o.show)

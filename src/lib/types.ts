@@ -1,5 +1,7 @@
 /** guest: outside the club, only on certain projects */
 export type Role = 'exec' | 'member' | 'guest';
+/** Extra things an exec member can be allowed to edit. Admins can do all of them. */
+export type Perm = 'finance' | 'website';
 export type Stage = 'idea' | 'planning' | 'active' | 'done';
 export type TaskStatus = 'todo' | 'doing' | 'done';
 export type Priority = 'low' | 'med' | 'high';
@@ -21,6 +23,9 @@ export interface Member {
   lastSeenAt?: number;
   emailOff?: boolean; // no task reminder emails
   invitedAt?: number; // when the sign-in email was last sent (set by the server)
+  admin?: boolean; // exec only: can also manage people, roles and delete projects
+  perms?: Perm[]; // exec only: money and/or website
+  hidden?: boolean; // backup account: keeps access but is left out of lists and pickers
 }
 
 export interface ProjectReview {

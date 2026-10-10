@@ -6,7 +6,8 @@ import { compressSquare, handOverTasks, inviteMember, removeMember, updateMember
 import { OWNER_EMAIL, ROLES, TEAMS } from '../lib/constants';
 import { ago, initials } from '../lib/format';
 import { emailReady, notify } from '../lib/notify';
-import type { Member, Role } from '../lib/types';
+import type { Member, Perm } from '../lib/types';
+import { accessFields, levelOf, LEVELS, PERMS, type Level } from '../lib/access';
 import { Avatar, Empty, Field, Modal, Seg, useConfirm, useRun, useToast } from '../components/ui';
 import { PageHead } from './Shell';
 import { EmptyArt } from '../components/Art';
@@ -35,6 +36,7 @@ export function MembersPage() {
   const guests = list.filter((m) => m.role === 'guest');
   const clubCount = store.members.filter((m) => m.role !== 'guest').length;
   const guestCount = store.members.length - clubCount;
+  const hiddenAccounts = store.isAdmin ? [...store.memberMap.values()].filter((m) => m.hidden && m.id !== store.myEmail) : [];
   const projectsOf = (email: string) => store.projects.filter((p) => p.stage !== 'done' && (p.leadEmail === email || p.teamEmails?.includes(email)));
 
   const card = (m: Member) => {
@@ -55,6 +57,13 @@ export function MembersPage() {
               {openTasks} open {openTasks === 1 ? 'task' : 'tasks'}
             </span>
             {leads > 0 && <span>Leads {leads}</span>}
+            {levelOf(m) === 'admin' && <span className="tag-access">Admin</span>}
+            {levelOf(m) === 'exec' &&
+              PERMS.filter((x) => m.perms?.includes(x.key)).map((x) => (
+                <span key={x.key} className="tag-access">
+                  {x.tag}
+                </span>
+              ))}
             {!m.uid && <span className="pending">{m.invitedAt ? 'Invited, not signed in yet' : "Hasn't signed in yet"}</span>}
           </span>
         </span>
@@ -68,7 +77,7 @@ export function MembersPage() {
         title="Members"
         sub={`${clubCount} in the club, ${store.members.filter((m) => m.role === 'exec').length} on the exec team${guestCount ? `, ${guestCount} ${guestCount === 1 ? 'guest' : 'guests'}` : ''}`}
         actions={
-          store.isExec && (
+          store.isAdmin && (
             <button className="btn btn-primary" onClick={() => setInviting(true)}>
               <Plus /> Add members
             </button>
@@ -118,7 +127,17 @@ export function MembersPage() {
               <div className="member-grid">{guests.map(card)}</div>
             </section>
           )}
-          {store.members.length <= 1 && store.isExec && (
+          {hiddenAccounts.length > 0 && (
+            <p className="small muted hidden-accounts">
+              Backup {hiddenAccounts.length === 1 ? 'account' : 'accounts'}, hidden from lists:
+              {hiddenAccounts.map((m) => (
+                <button key={m.id} className="btn btn-ghost btn-sm" onClick={() => setOpen(m)}>
+                  {m.email}
+                </button>
+              ))}
+            </p>
+          )}
+          {store.members.length <= 1 && store.isAdmin && (
             <div className="panel">
               <Empty art={<EmptyArt.people />} title="It's just you so far" action={<button className="btn" onClick={() => setInviting(true)}><Plus /> Add members</button>}>
                 Add people by their Google email. They sign in with that account and land straight in the workspace.
@@ -146,7 +165,17 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
   const store = useStore();
   const run = useRun();
   const confirm = useConfirm();
-  const [f, setF] = useState({ name: member.name ?? '', title: member.title ?? '', team: member.team ?? '', role: member.role, bio: member.bio ?? '', showOnSite: !!member.showOnSite, emailOff: !!member.emailOff });
+  const [f, setF] = useState({
+    name: member.name ?? '',
+    title: member.title ?? '',
+    team: member.team ?? '',
+    level: levelOf(member) as Level,
+    perms: member.perms ?? ([] as Perm[]),
+    hidden: !!member.hidden,
+    bio: member.bio ?? '',
+    showOnSite: !!member.showOnSite,
+    emailOff: !!member.emailOff,
+  });
   const [mailReady, setMailReady] = useState(false);
   const [testing, setTesting] = useState(false);
   const [handTo, setHandTo] = useState('');
@@ -158,19 +187,30 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
   const [sitePhoto, setSitePhoto] = useState(member.sitePhoto ?? '');
   const [busyPhoto, setBusyPhoto] = useState(false);
   const toast = useToast();
-  const asExec = store.isExec;
-  const canEdit = asExec || !!self;
+  // only admins change other people, roles and permissions
+  const asAdmin = store.isAdmin;
+  const canEdit = asAdmin || !!self;
   const isOwnerRow = member.id === OWNER_EMAIL;
   const openTasks = store.tasks.filter((t) => t.assigneeEmail === member.id && t.status !== 'done');
   const leads = store.projects.filter((p) => p.leadEmail === member.id);
 
   const save = async () => {
-    const patch: Partial<Member> = asExec ? { ...f, name: f.name.trim() } : { name: f.name.trim(), bio: f.bio, showOnSite: f.showOnSite, emailOff: f.emailOff };
+    const patch: Partial<Member> = asAdmin
+      ? {
+          name: f.name.trim(),
+          title: f.title,
+          team: f.team,
+          bio: f.bio,
+          showOnSite: f.showOnSite,
+          emailOff: f.emailOff,
+          hidden: f.level !== 'guest' && f.hidden,
+          ...accessFields(isOwnerRow ? 'admin' : f.level, f.perms),
+        }
+      : { name: f.name.trim(), bio: f.bio, showOnSite: f.showOnSite, emailOff: f.emailOff };
     if (sitePhoto !== (member.sitePhoto ?? '')) patch.sitePhoto = sitePhoto;
-    if (isOwnerRow) patch.role = 'exec';
     if (patch.role === 'guest') patch.showOnSite = false;
     const ok = await run(async () => {
-      await updateMember(member, patch, !!self && !asExec);
+      await updateMember(member, patch, !!self && !asAdmin);
       return true;
     }, 'Profile saved');
     if (ok) onClose();
@@ -182,7 +222,7 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
       onClose={onClose}
       footer={
         <>
-          {asExec && !self && !isOwnerRow && (
+          {asAdmin && !self && !isOwnerRow && (
             <button
               className="btn btn-danger"
               onClick={async () => {
@@ -223,7 +263,7 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
             {!member.uid && member.invitedAt ? `, invite sent ${ago(member.invitedAt)}` : ''}
           </div>
         </div>
-        {asExec && !self && !member.uid && mailReady && (
+        {asAdmin && !self && !member.uid && mailReady && (
           <button
             type="button"
             className={`btn btn-sm ${inviting ? 'is-busy' : ''}`}
@@ -244,31 +284,26 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
         <Field label="Name">
           <input className="input" value={f.name} onChange={(e) => set('name', e.target.value)} disabled={!canEdit} />
         </Field>
-        <Field
-          label="Role"
-          hint={
-            isOwnerRow
-              ? 'The club owner is always on the exec team.'
-              : f.role === 'guest'
-                ? 'Not in the club. Only sees the projects they are on, their own tasks and meetings they attended.'
-                : asExec
-                  ? 'Exec members can edit everything, including money.'
-                  : undefined
-          }
-        >
-          <Seg<Role>
-            label="Role"
-            value={f.role}
-            onChange={(v) => asExec && !isOwnerRow && set('role', v)}
-            options={[
-              { key: 'member', label: 'Member' },
-              { key: 'exec', label: 'Exec' },
-              { key: 'guest', label: 'Guest' },
-            ]}
-          />
+        <Field label="Access" className="full" hint={isOwnerRow ? 'The club owner is always an admin.' : LEVELS.find((l) => l.key === f.level)?.hint}>
+          <Seg<Level> label="Access" value={f.level} onChange={(v) => asAdmin && !isOwnerRow && set('level', v)} options={LEVELS.map((l) => ({ key: l.key, label: l.label }))} />
         </Field>
+        {f.level === 'exec' && (
+          <div className="field full perm-list">
+            {PERMS.map((x) => (
+              <label key={x.key} className="check">
+                <input
+                  type="checkbox"
+                  checked={f.perms.includes(x.key)}
+                  disabled={!asAdmin}
+                  onChange={(e) => set('perms', e.target.checked ? [...f.perms, x.key] : f.perms.filter((k) => k !== x.key))}
+                />
+                {x.label}
+              </label>
+            ))}
+          </div>
+        )}
         <Field label="Title">
-          <input className="input" list="role-options" value={f.title} onChange={(e) => set('title', e.target.value)} disabled={!asExec} placeholder="Pick a role or type one" />
+          <input className="input" list="role-options" value={f.title} onChange={(e) => set('title', e.target.value)} disabled={!asAdmin} placeholder="Pick a role or type one" />
           <datalist id="role-options">
             {ROLES.map((r) => (
               <option key={r} value={r} />
@@ -276,7 +311,7 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
           </datalist>
         </Field>
         <Field label="Team">
-          <input className="input" list="team-options" value={f.team} onChange={(e) => set('team', e.target.value)} disabled={!asExec} placeholder="e.g. Marketing" />
+          <input className="input" list="team-options" value={f.team} onChange={(e) => set('team', e.target.value)} disabled={!asAdmin} placeholder="e.g. Marketing" />
           <datalist id="team-options">
             {TEAMS.map((t) => (
               <option key={t} value={t} />
@@ -325,10 +360,16 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
           </div>
           <small className="hint">Cropped to a square for the team section. Without one, the Google account photo is used.</small>
         </div>
-        {f.role !== 'guest' && (
+        {f.level !== 'guest' && !f.hidden && (
           <label className="check full">
             <input type="checkbox" checked={f.showOnSite} onChange={(e) => set('showOnSite', e.target.checked)} disabled={!canEdit} />
             List on the public website's team section (name, title, photo and bio)
+          </label>
+        )}
+        {asAdmin && f.level !== 'guest' && (f.hidden || isOwnerRow) && (
+          <label className="check full">
+            <input type="checkbox" checked={f.hidden} onChange={(e) => set('hidden', e.target.checked)} />
+            Backup account: keep its access but leave it out of the members list, pickers and the website
           </label>
         )}
         <div className="field full">
@@ -376,7 +417,7 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
               {openTasks.length} open {openTasks.length === 1 ? 'task' : 'tasks'}
             </p>
           )}
-          {asExec && openTasks.length > 0 && (
+          {asAdmin && openTasks.length > 0 && (
             <div className="handover">
               <label htmlFor="handover-to" className="small">
                 Give {self ? 'my' : 'their'} {openTasks.length} open {openTasks.length === 1 ? 'task' : 'tasks'} to
@@ -422,7 +463,7 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
   const run = useRun();
   const toast = useToast();
   const [emails, setEmails] = useState('');
-  const [role, setRole] = useState<Role>('member');
+  const [level, setLevel] = useState<Level>('member');
   const [team, setTeam] = useState('');
   const [title, setTitle] = useState('');
   const [onProjects, setOnProjects] = useState<string[]>([]);
@@ -433,7 +474,7 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
     emailReady().then(setMailReady);
   }, []);
   const openProjects = store.projects.filter((p) => p.stage !== 'done');
-  const isGuest = role === 'guest';
+  const isGuest = level === 'guest';
   const parsed = emails
     .split(/[\s,;]+/)
     .map((e) => e.trim().toLowerCase())
@@ -451,7 +492,7 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
     for (const email of valid) {
       const ok = await run(async () => {
         const projects = isGuest ? openProjects.filter((p) => onProjects.includes(p.id)) : [];
-        await inviteMember({ email, name: '', role, title: isGuest ? '' : parsed.length === 1 ? title : '', team: isGuest ? '' : team, showOnSite: role === 'exec' }, projects);
+        await inviteMember({ email, name: '', ...accessFields(level), title: isGuest ? '' : parsed.length === 1 ? title : '', team: isGuest ? '' : team, showOnSite: level === 'exec' || level === 'admin' }, projects);
         return true;
       });
       if (!ok) continue;
@@ -532,17 +573,8 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
         >
           <textarea className="textarea" style={{ minHeight: 80 }} value={emails} onChange={(e) => setEmails(e.target.value)} placeholder="name@school.edu.vn" />
         </Field>
-        <Field label="Role">
-          <Seg<Role>
-            label="Role"
-            value={role}
-            onChange={setRole}
-            options={[
-              { key: 'member', label: 'Member' },
-              { key: 'exec', label: 'Exec' },
-              { key: 'guest', label: 'Guest' },
-            ]}
-          />
+        <Field label="Access" className="full" hint={isGuest ? undefined : LEVELS.find((l) => l.key === level)?.hint}>
+          <Seg<Level> label="Access" value={level} onChange={setLevel} options={LEVELS.map((l) => ({ key: l.key, label: l.label }))} />
         </Field>
         {isGuest ? (
           <div className="field full">

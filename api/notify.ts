@@ -6,7 +6,7 @@
    POST { type: 'task', taskId }             tell the assignee about a new task
    POST { type: 'announcement', id }         exec only: email an announcement
    POST { type: 'meeting', id }              email meeting notes to who was there
-   POST { type: 'invite', email }            exec only: send someone who was just added the sign-in link */
+   POST { type: 'invite', email }            admins only: send someone who was just added the sign-in link */
 import { announcementEmail, assignedEmail, digestEmail, digestFor, inviteEmail, meetingEmail, vnToday, type MailMeeting, type MailTask } from './_lib/emails.js';
 import { HttpError, OWNER_EMAIL, adminAuth, brand, db, fail, header, loadMembers, mailConfigured, projectTitles, send, type Req, type Res } from './_lib/server.js';
 
@@ -37,6 +37,7 @@ export default async function handler(req: Req, res: Res) {
     if (!meMember && me !== OWNER_EMAIL) throw new HttpError(403, 'You are not on the member list');
     const isExec = me === OWNER_EMAIL || meMember?.role === 'exec';
     const isGuest = me !== OWNER_EMAIL && meMember?.role === 'guest';
+    const isAdmin = me === OWNER_EMAIL || (meMember?.role === 'exec' && meMember.admin === true);
     const body = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body || {}) as Body;
     const b = await brand();
     const nameOf = (email: string) => members.get(email)?.name || email.split('@')[0];
@@ -88,7 +89,7 @@ export default async function handler(req: Req, res: Res) {
         const audience = a.audience || 'all';
         // guests are not in the club, so club announcements never go to them
         const to = [...members.values()]
-          .filter((m) => m.role !== 'guest')
+          .filter((m) => m.role !== 'guest' && !m.hidden)
           .filter((m) => (audience === 'all' ? true : audience === 'exec' ? m.role === 'exec' : audience.startsWith('team:') ? m.team === audience.slice(5) : false))
           .map((m) => m.email);
         if (!to.length) throw new HttpError(400, 'Nobody is in that group');
@@ -117,7 +118,7 @@ export default async function handler(req: Req, res: Res) {
       }
 
       case 'invite': {
-        if (!isExec) throw new HttpError(403, 'Only the exec team can add people');
+        if (!isAdmin) throw new HttpError(403, 'Only admins can add people');
         const email = (body.email || '').trim().toLowerCase();
         const target = members.get(email);
         if (!target) throw new HttpError(404, 'That person is not on the list');

@@ -125,7 +125,7 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
   const menu = useMenu();
   const rows: Row[] = useMemo(() => store.rows.get(sheet.id) ?? [], [store.rows, sheet.id]);
   const cols = sheet.columns;
-  const canEdit = store.isExec;
+  const canEdit = store.canFinance;
 
   const [a, setA] = useState<Pos>({ r: 0, c: 0 }); // active cell / anchor
   const [h, setH] = useState<Pos>({ r: 0, c: 0 }); // moving corner
@@ -874,7 +874,7 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
           );
         })}
         <span style={{ flex: 1 }} />
-        {!canEdit && <span className="small faint">View only. The exec team edits finance.</span>}
+        {!canEdit && <span className="small faint">View only. The people in charge of money edit it.</span>}
       </div>
       <div className="fbar">
         <div className="fbar-name">{rows.length ? (rect.r0 === rect.r1 && rect.c0 === rect.c1 ? cellName(a.r, a.c) : refText({ r: rect.r0, c: rect.c0 }, { r: rect.r1, c: rect.c1 })) : ''}</div>

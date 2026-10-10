@@ -17,6 +17,7 @@ import { auth, db, googleProvider, firebaseConfigured } from './firebase';
 import { OWNER_EMAIL, DEFAULT_SITE, LEDGER_CATEGORIES } from './constants';
 import type { Activity, Announcement, Meeting, Member, Project, Row, Sheet, SiteContent, Task, SchoolDate, QuickLink } from './types';
 import { setCurrency } from './format';
+import { hasPerm, levelOf } from './access';
 
 export type Access = 'loading' | 'signedOut' | 'noAccess' | 'ok' | 'error';
 
@@ -27,6 +28,12 @@ interface Store {
   me: Member | null;
   myEmail: string;
   isExec: boolean;
+  /** can manage people and roles, delete projects and import */
+  isAdmin: boolean;
+  /** can edit the ledger, sheets and receipts */
+  canFinance: boolean;
+  /** can edit the public website */
+  canWebsite: boolean;
   isOwner: boolean;
   /** outside the club: sees only their projects, their tasks and meetings they attended */
   isGuest: boolean;
@@ -276,6 +283,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const myEmail = DEMO ? (DEMO_GUEST ? DEMO_GUEST_EMAIL : OWNER_EMAIL) : emailKey(user?.email);
     const isOwner = myEmail === OWNER_EMAIL;
     const isExec = isOwner || me?.role === 'exec';
+    const meWho = me ?? (isOwner ? { id: myEmail, role: 'exec' as const } : null);
+    const isAdmin = isOwner || levelOf(meWho) === 'admin';
     const isGuest = !isOwner && me?.role === 'guest';
     const rows = new Map<string, Row[]>();
     for (const { sheetId, row } of rowsFlat) {
@@ -283,8 +292,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       rows.get(sheetId)!.push(row);
     }
     rows.forEach((list) => list.sort((a, b) => a.order - b.order));
-    const rank = (r: string) => (r === 'exec' ? 0 : r === 'guest' ? 2 : 1);
-    const sortedMembers = [...members].sort((a, b) => rank(a.role) - rank(b.role) || (a.name || a.email).localeCompare(b.name || b.email));
+    const order = { admin: 0, exec: 1, member: 2, guest: 3 };
+    const sortedMembers = [...members].sort((a, b) => order[levelOf(a)] - order[levelOf(b)] || (a.name || a.email).localeCompare(b.name || b.email));
     const sortedProjects = [...projects].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (b.createdAt ?? 0) - (a.createdAt ?? 0));
     return {
       access,
@@ -293,10 +302,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       me,
       myEmail,
       isExec,
+      isAdmin,
+      canFinance: isOwner || hasPerm(meWho, 'finance'),
+      canWebsite: isOwner || hasPerm(meWho, 'website'),
       isOwner,
       isGuest,
       ready: ['members', 'projects', 'tasks', 'meetings', 'sheets', 'rows'].every((k) => loaded[k]),
-      members: sortedMembers,
+      // backup accounts keep access but stay out of lists and pickers
+      members: sortedMembers.filter((m) => !m.hidden || m.id === myEmail),
       memberMap: new Map(members.map((m) => [m.id, m])),
       projects: sortedProjects,
       projectMap: new Map(projects.map((p) => [p.id, p])),

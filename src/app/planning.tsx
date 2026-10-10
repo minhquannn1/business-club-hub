@@ -187,7 +187,7 @@ export function ImportPage() {
       return { error: "That isn't valid import data." };
     }
   }, [text]);
-  if (!store.isExec) return <Navigate to="/app" replace />;
+  if (!store.isAdmin) return <Navigate to="/app" replace />;
   const b = parsed && 'b' in parsed ? parsed.b : null;
   const summary = b
     ? [

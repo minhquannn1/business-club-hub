@@ -17,6 +17,7 @@ import type { Activity, Announcement, Column, ProjectKind, Round, Meeting, Membe
 import { LEDGER_CATEGORIES, PROJECT_COLORS, type CompetitionTemplate } from './constants';
 import { uid } from './format';
 import { notify } from './notify';
+import { LEVELS, levelOf, PERMS } from './access';
 
 let actor = '';
 export function setActor(email: string) {
@@ -175,8 +176,8 @@ export async function deleteMeeting(m: Meeting) {
 
 async function syncPublicMember(m: Member, order: number) {
   const ref = doc(db, 'publicTeam', m.id.replace(/[^a-z0-9]/g, '_'));
-  // guests are not in the club, so they never appear on the website
-  if (m.showOnSite && m.name && m.role !== 'guest') {
+  // guests are not in the club and backup accounts are hidden, so neither appears on the website
+  if (m.showOnSite && m.name && m.role !== 'guest' && !m.hidden) {
     const pm: Omit<PublicMember, 'id'> = { name: m.name, title: m.title ?? '', team: m.team ?? '', photoURL: m.sitePhoto || m.photoURL || '', bio: m.bio ?? '', order };
     await setDoc(ref, pm);
   } else await deleteDoc(ref).catch(() => {});
@@ -202,7 +203,13 @@ export async function updateMember(prev: Member, patch: Partial<Member>, self = 
   const next = { ...prev, ...patch };
   if (!self || 'showOnSite' in patch || 'name' in patch || 'bio' in patch || 'sitePhoto' in patch)
     await syncPublicMember(next, next.role === 'exec' ? 0 : 1).catch(() => {});
-  log(patch.role && patch.role !== prev.role ? (patch.role === 'exec' ? 'promoted' : 'changed role of') : 'updated', 'member', prev.id, next.name || prev.id);
+  const before = levelOf(prev);
+  const after = levelOf(next);
+  const permsChanged = (prev.perms ?? []).join() !== (next.perms ?? []).join();
+  if (after !== before || permsChanged) {
+    const extra = after === 'exec' ? PERMS.filter((x) => next.perms?.includes(x.key)).map((x) => x.tag) : [];
+    log('changed access of', 'member', prev.id, next.name || prev.id, `now ${LEVELS.find((l) => l.key === after)?.label ?? after}${extra.length ? ` (${extra.join(', ')})` : ''}`);
+  } else log('updated', 'member', prev.id, next.name || prev.id);
 }
 
 export async function removeMember(m: Member) {

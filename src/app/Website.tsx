@@ -29,11 +29,11 @@ export function WebsitePage() {
     }, 'Website updated');
     if (ok) setDirty(false);
   };
-  if (!store.isExec)
+  if (!store.canWebsite)
     return (
       <div className="page">
         <div className="panel">
-          <Empty title="Only the exec team edits the website" />
+          <Empty title="Only admins and whoever runs the website can edit it" />
         </div>
       </div>
     );

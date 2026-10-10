@@ -75,13 +75,13 @@ export function FinancePage() {
     <div className={`page ${sheet ? 'page-full' : ''}`} style={sheet ? { paddingBottom: 16 } : undefined}>
       <PageHead
         title="Finance"
-        sub={sheet ? undefined : "The club's money: one ledger everyone can read, edited by the exec team."}
+        sub={sheet ? undefined : "The club's money: one ledger everyone can read. Only the people in charge of money edit it."}
         actions={
           <>
             <button className="btn btn-ghost" onClick={() => setHelp(true)}>
               <BookOpen /> Formulas
             </button>
-            {store.isExec && !sheet && (
+            {store.canFinance && !sheet && (
               <button className="btn btn-ghost" onClick={() => setImporting(true)}>
                 <Upload /> Import events
               </button>
@@ -91,7 +91,7 @@ export function FinancePage() {
                 <Download /> Export to Excel
               </button>
             )}
-            {store.isExec && !sheet && store.sheets.some((s) => s.isLedger) && (
+            {store.canFinance && !sheet && store.sheets.some((s) => s.isLedger) && (
               <button className="btn btn-primary" onClick={() => setEntry('out')}>
                 <Plus /> Record expense
               </button>
@@ -105,9 +105,9 @@ export function FinancePage() {
         </NavLink>
         {store.sheets.map((s) => (
           <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center' }}>
-            <NavLink to={`/app/finance/${s.id}`} className={({ isActive }) => `sheet-tab ${isActive ? 'active' : ''}`} onContextMenu={(e) => store.isExec && (e.preventDefault(), sheetMenu(e.currentTarget, s))}>
+            <NavLink to={`/app/finance/${s.id}`} className={({ isActive }) => `sheet-tab ${isActive ? 'active' : ''}`} onContextMenu={(e) => store.canFinance && (e.preventDefault(), sheetMenu(e.currentTarget, s))}>
               <Table2 /> {s.name}
-              {store.isExec && sheet?.id === s.id && (
+              {store.canFinance && sheet?.id === s.id && (
                 <span
                   role="button"
                   tabIndex={0}
@@ -125,7 +125,7 @@ export function FinancePage() {
             </NavLink>
           </span>
         ))}
-        {store.isExec && (
+        {store.canFinance && (
           <button className="sheet-tab" onClick={() => setNewSheet(true)} aria-label="New sheet">
             <Plus /> Sheet
           </button>
@@ -183,16 +183,16 @@ function Summary({ onNewLedger, onRecord }: { onNewLedger: () => void; onRecord:
         <Empty art={<EmptyArt.money />}
           title="No ledger yet"
           action={
-            store.isExec ? (
+            store.canFinance ? (
               <button className="btn btn-primary" onClick={onNewLedger}>
                 <Plus /> Create the club ledger
               </button>
             ) : undefined
           }
         >
-          {store.isExec
+          {store.canFinance
             ? 'The ledger is a spreadsheet where every payment in or out gets a row: date, what for, which project, how much, and a photo of the receipt. Totals and project budgets update from it.'
-            : 'The exec team has not set up the ledger yet.'}
+            : 'Nobody has set up the ledger yet.'}
         </Empty>
       </div>
     );
@@ -278,7 +278,7 @@ function Summary({ onNewLedger, onRecord }: { onNewLedger: () => void; onRecord:
       <section className="panel">
         <div className="panel-head">
           <h2 className="h3">Latest entries</h2>
-          {store.isExec && (
+          {store.canFinance && (
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn btn-sm" onClick={() => onRecord('in')}>
                 Record income
@@ -287,7 +287,7 @@ function Summary({ onNewLedger, onRecord }: { onNewLedger: () => void; onRecord:
           )}
         </div>
         {recent.length === 0 ? (
-          <Empty title="Nothing recorded yet">{store.isExec ? 'Use Record expense, or type straight into the ledger sheet.' : null}</Empty>
+          <Empty title="Nothing recorded yet">{store.canFinance ? 'Use Record expense, or type straight into the ledger sheet.' : null}</Empty>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table className="table">

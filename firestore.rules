@@ -1,8 +1,11 @@
 rules_version = '2';
 
 // Business Club Hub security rules.
-// Club members (role exec or member) can read the workspace. Exec members can change everything;
-// project leads can change their own project and its tasks; everyone can tick off their own tasks.
+// Club members (role exec or member) can read the workspace.
+// Admins (exec with admin: true) can change everything, including people and roles.
+// Exec members create projects and tasks and post announcements; money and the website
+// need the 'finance' or 'website' permission in their perms list.
+// Project leads can change their own project and its tasks; everyone can tick off their own tasks.
 // Guests (role guest) are people outside the club who help on certain projects: they only see
 // the projects they are on, the tasks given to them and the meetings they attended.
 service cloud.firestore {
@@ -34,6 +37,13 @@ service cloud.firestore {
     function isExec() {
       return isOwner() || (signedIn() && exists(memberPath()) && get(memberPath()).data.role == 'exec');
     }
+    function isAdmin() {
+      return isOwner() || (isExec() && get(memberPath()).data.get('admin', false) == true);
+    }
+    // 'finance' or 'website'
+    function canDo(perm) {
+      return isAdmin() || (isExec() && perm in get(memberPath()).data.get('perms', []));
+    }
     function projectPath(projectId) {
       return /databases/$(database)/documents/projects/$(projectId);
     }
@@ -56,7 +66,7 @@ service cloud.firestore {
     // ---------- public website ----------
     match /site/{doc} {
       allow read: if true;
-      allow write: if isExec();
+      allow write: if canDo('website');
     }
     match /publicProjects/{id} {
       allow read: if true;
@@ -64,23 +74,24 @@ service cloud.firestore {
     }
     match /publicTeam/{id} {
       allow read: if true;
-      allow write: if isExec() || (isMember() && id == myEmail().replace('[^a-z0-9]', '_'));
+      allow write: if canDo('website') || (isMember() && id == myEmail().replace('[^a-z0-9]', '_'));
     }
 
     // ---------- people ----------
     match /members/{email} {
       allow read: if onList() || (signedIn() && email == myEmail());
-      allow create: if isExec() || (isOwner() && email == myEmail());
-      allow update: if isExec()
+      allow create: if isAdmin();
+      allow update: if isAdmin()
         || (onList() && email == myEmail() && changesOnly(['name', 'photoURL', 'sitePhoto', 'bio', 'uid', 'lastSeenAt', 'showOnSite', 'emailOff']));
-      allow delete: if isExec() && email != 'ngocminhquannguyen@gmail.com';
+      allow delete: if isAdmin() && email != 'ngocminhquannguyen@gmail.com';
     }
 
     // ---------- work ----------
     match /projects/{id} {
       allow read: if isMember()
         || (isGuest() && (resource.data.leadEmail == myEmail() || myEmail() in resource.data.teamEmails));
-      allow create, delete: if isExec();
+      allow create: if isExec();
+      allow delete: if isAdmin();
       allow update: if isExec()
         || (leads(id) && request.resource.data.leadEmail == resource.data.leadEmail);
     }
@@ -123,10 +134,10 @@ service cloud.firestore {
     // ---------- money (club only) ----------
     match /sheets/{sheetId} {
       allow read: if isMember();
-      allow write: if isExec();
+      allow write: if canDo('finance');
       match /rows/{rowId} {
         allow read: if isMember();
-        allow write: if isExec();
+        allow write: if canDo('finance');
       }
     }
     match /{path=**}/rows/{rowId} {
@@ -134,7 +145,7 @@ service cloud.firestore {
     }
     match /receipts/{id} {
       allow read: if isMember();
-      allow write: if isExec();
+      allow write: if canDo('finance');
     }
 
     // ---------- planning (club only) ----------

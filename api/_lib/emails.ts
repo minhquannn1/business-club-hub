@@ -20,6 +20,8 @@ export interface MailMember {
   emailOff?: boolean;
   uid?: string;
   invitedAt?: number;
+  admin?: boolean;
+  hidden?: boolean;
 }
 
 export interface Email {
