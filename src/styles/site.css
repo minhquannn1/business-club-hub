@@ -219,65 +219,64 @@
   background: linear-gradient(to bottom, transparent, var(--surface));
   pointer-events: none;
 }
-.hero-top {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px 40px;
-  flex-wrap: wrap;
-  margin-bottom: 28px;
-}
-.hero-club {
+.hero-grid {
   display: grid;
-  gap: 6px;
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(30px, 3.4vw, 44px);
-  line-height: 1;
-  letter-spacing: -0.03em;
-  color: var(--ink);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: clamp(24px, 4vw, 64px);
+  align-items: center;
 }
-.hero-club span {
-  font-family: var(--font);
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: var(--ink-2);
+@media (max-width: 900px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
 }
-.hero-prompt {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 4px;
-  font-size: clamp(26px, 2.6vw, 34px);
-  line-height: 1;
+.hero-kicker {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--ice);
   color: var(--brand);
-  transform: rotate(-2deg);
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 22px;
 }
-.hero-prompt .curly-arrow {
-  width: 60px;
-  height: 46px;
-  margin-top: 12px;
-}
-:root[data-theme='dark'] .hero-prompt {
+:root[data-theme='dark'] .hero-kicker {
   color: var(--sky);
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .hero-prompt {
+  :root:not([data-theme='light']) .hero-kicker {
     color: var(--sky);
   }
 }
-.hero-foot {
+.board-name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(56px, 8vw, 116px);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  max-width: 8ch;
+}
+.hero-lead {
+  margin-top: 26px;
+  max-width: 40ch;
+  font-size: clamp(16.5px, 1.5vw, 18.5px);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.hero-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
   gap: 12px;
   margin-top: 32px;
+}
+.hero-next {
+  margin-top: 22px;
 }
 .hero-next {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: 8px;
   color: var(--ink-2);
   text-decoration: none;
   font-size: 14.5px;
@@ -294,6 +293,158 @@
 .hero-next:hover strong {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* stickers you can drag around */
+.board {
+  position: relative;
+  height: clamp(340px, 38vw, 480px);
+  touch-action: none;
+  user-select: none;
+}
+@media (max-width: 900px) {
+  .board {
+    height: 360px;
+    max-width: 520px;
+    width: 100%;
+    justify-self: center;
+  }
+}
+.sticker {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(var(--dx, 0px), var(--dy, 0px)) rotate(var(--r));
+  cursor: grab;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.12)) drop-shadow(0 10px 14px rgba(0, 0, 0, 0.16));
+  transition: filter 0.2s ease, scale 0.2s var(--ease-out);
+  -webkit-user-select: none;
+  touch-action: none;
+}
+.sticker.lifted {
+  cursor: grabbing;
+  scale: 1.06;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.14)) drop-shadow(0 22px 26px rgba(0, 0, 0, 0.22));
+}
+@media (hover: hover) and (pointer: fine) {
+  .sticker:hover {
+    scale: 1.03;
+  }
+}
+.sk-round img {
+  display: block;
+  width: clamp(150px, 15vw, 200px);
+  height: auto;
+  border-radius: 50%;
+  border: 7px solid #fff;
+}
+.sk-black {
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: #0a0a0a;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  border: 5px solid #fff;
+  white-space: nowrap;
+}
+.sk-plain {
+  padding: 10px 14px 8px;
+  border-radius: 22px;
+  background: #fff;
+}
+.sk-bag {
+  position: relative;
+  display: block;
+}
+.sk-bag svg {
+  display: block;
+}
+.sk-tag {
+  position: absolute;
+  right: -30px;
+  bottom: 8px;
+  padding: 2px 10px 4px;
+  background: #1f3dff;
+  color: #fff;
+  border: 3px solid #fff;
+  border-radius: 8px;
+  font-size: 24px;
+  line-height: 1;
+  transform: rotate(14deg);
+}
+.sk-bubble {
+  position: absolute;
+  padding: 10px 18px 12px;
+  border-radius: 22px 22px 22px 4px;
+  background: #1f3dff;
+  color: #fff;
+  border: 5px solid #fff;
+}
+.sk-bubble .hand {
+  font-size: 30px;
+  line-height: 1;
+}
+.sk-star .star {
+  width: 64px;
+  height: 64px;
+  color: #1f3dff;
+}
+.sk-star .star path {
+  stroke: #fff;
+  stroke-width: 2.5;
+}
+.sk-note {
+  padding: 12px 18px 14px;
+  background: #fff;
+  border-radius: 6px;
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 29px, #dfe3ff 29px, #dfe3ff 30px);
+  background-position: 0 8px;
+}
+.sk-note .hand {
+  display: grid;
+  font-size: 24px;
+  line-height: 30px;
+  color: #0a0a0a;
+}
+.sk-note s {
+  text-decoration-color: #1f3dff;
+  text-decoration-thickness: 3px;
+}
+.sk-note .hand span {
+  color: #1f3dff;
+}
+.board-hint {
+  position: absolute;
+  right: 4%;
+  bottom: -6px;
+  font-size: 22px;
+  color: var(--ink-3);
+  transform: rotate(-3deg);
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+.board-hint.gone {
+  opacity: 0;
+}
+@media (max-width: 520px) {
+  .sk-round img {
+    width: 130px;
+  }
+  .sk-bag svg {
+    width: 60px;
+    height: 74px;
+  }
+  .sk-note .hand {
+    font-size: 20px;
+    line-height: 26px;
+  }
+  .sk-bubble .hand {
+    font-size: 24px;
+  }
+  .sk-black {
+    font-size: 13px;
+  }
 }
 
 /* the candy stall game */
@@ -625,9 +776,6 @@
   .till {
     border-radius: 22px;
     padding: 20px 18px;
-  }
-  .hero-next {
-    margin-left: 0;
   }
 }
 

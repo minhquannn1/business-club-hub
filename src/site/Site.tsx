@@ -8,8 +8,9 @@ import { DEFAULT_SITE } from '../lib/constants';
 import type { PublicProject } from '../lib/types';
 import { EmptyArt, LogoMark, Pictograms, toneFor } from '../components/Art';
 import { Polaroid } from './Polaroid';
-import { CurlyArrow, Sparkle, Star } from './Doodles';
+import { CurlyArrow, Sparkle } from './Doodles';
 import { BoothGame } from './BoothGame';
+import { StickerHero } from './StickerHero';
 import { GALLERY, PHOTOS } from './photos';
 import '@fontsource/caveat/latin-600.css';
 import '../styles/site.css';
@@ -147,36 +148,7 @@ export function SiteHome() {
   return (
     <div className="site">
       <SiteHeader />
-      <section className="hero" aria-labelledby="hero-title">
-        <div className="site-wrap">
-          <div className="hero-top">
-            <h1 id="hero-title" className="hero-club">
-              {site.clubName}
-              <span>{kicker}</span>
-            </h1>
-            <p className="hand hero-prompt" aria-hidden="true">
-              you run the candy stall. pick a price
-              <CurlyArrow />
-            </p>
-          </div>
-          <BoothGame />
-          <div className="hero-foot">
-            <a href="#join" className="btn btn-blue">
-              Join the club <ArrowRight size={17} className="btn-arrow" aria-hidden="true" />
-            </a>
-            <a href="#events" className="btn btn-outline">
-              See what's on
-            </a>
-            {next && (
-              <Link to={`/p/${next.id}`} className="hero-next">
-                <Star />
-                Next up: <strong>{next.title}</strong>
-                {next.startDate && <span>({fmtDate(next.startDate, 'EEE d MMM')})</span>}
-              </Link>
-            )}
-          </div>
-        </div>
-      </section>
+      <StickerHero clubName={site.clubName} kicker={kicker} next={next} />
 
       <main id="main">
         <section id="do" className="site-section">
@@ -377,6 +349,18 @@ export function SiteHome() {
                 ))}
               </ul>
             )}
+          </div>
+        </section>
+
+        <section id="play" className="site-section play" aria-labelledby="play-title">
+          <div className="site-wrap">
+            <div className="section-head">
+              <h2 id="play-title" className="section-title display">
+                Run the stall
+              </h2>
+              <p className="section-sub">One bag of candy costs us 8k. Pick a price, watch the queue, and see what is left after paying for the candy.</p>
+            </div>
+            <BoothGame />
           </div>
         </section>
 
