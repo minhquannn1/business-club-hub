@@ -106,6 +106,7 @@ function DocWorkspace({ p, d, sections, comments }: { p: Project; d: Deliverable
   const list = Object.values(states);
   const overall: SaveState = list.some((x) => x.s === 'conflict') ? 'conflict' : list.some((x) => x.s === 'error') ? 'error' : list.some((x) => x.s === 'saving' || x.s === 'dirty') ? 'saving' : 'saved';
   const errorInfo = list.find((x) => x.s === 'error')?.info;
+  const written = sections.some((s) => s.rev > 0);
 
   // warn before leaving with unsaved text
   useEffect(() => {
@@ -124,11 +125,12 @@ function DocWorkspace({ p, d, sections, comments }: { p: Project; d: Deliverable
     if (!canWrite || overall !== 'saved' || d.kind !== 'doc') return;
     const patch: Partial<Deliverable> = {};
     if ((d.words ?? 0) !== total) patch.words = total;
-    if (d.status === 'todo' && total > 0) patch.status = 'drafting';
+    // starter text from the template does not count as starting; someone has to have saved a change
+    if (d.status === 'todo' && total > 0 && written) patch.status = 'drafting';
     if (!Object.keys(patch).length) return;
     const t = window.setTimeout(() => void repo.update(d.id, { ...patch, updatedAt: Date.now(), updatedBy: me }).catch(() => {}), 3000);
     return () => window.clearTimeout(t);
-  }, [canWrite, overall, total, d.words, d.status, d.id, d.kind, me]);
+  }, [canWrite, overall, total, written, d.words, d.status, d.id, d.kind, me]);
 
   const rounds = p.rounds ?? [];
   const round = rounds.find((r) => r.id === d.roundId);
