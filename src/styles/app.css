@@ -1160,6 +1160,7 @@ button.row-link {
 .login-card .ledger {
   padding-top: 8px;
   padding-bottom: 22px;
+  background-image: none;
 }
 .login-title {
   font-size: 30px;

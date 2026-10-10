@@ -52,6 +52,8 @@ export function useStore(): Store {
 
 const emailKey = (e: string | null | undefined) => (e ?? '').trim().toLowerCase();
 
+const DEMO = import.meta.env.DEV && typeof window !== 'undefined' && /[?&]demo/.test(window.location.search + (sessionStorage.getItem('demo') ? '&demo' : ''));
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [access, setAccess] = useState<Access>(firebaseConfigured ? 'loading' : 'error');
@@ -69,6 +71,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const touched = useRef(false);
 
   const markLoaded = (k: string) => setLoaded((l) => (l[k] ? l : { ...l, [k]: true }));
+
+  // Local UI check mode (dev server only)
+  useEffect(() => {
+    if (!DEMO) return;
+    sessionStorage.setItem('demo', '1');
+    import('./demo').then(({ demoData }) => {
+      const dd = demoData();
+      setMembers(dd.members);
+      setMe(dd.members[0]);
+      setProjects(dd.projects);
+      setTasks(dd.tasks);
+      setMeetings(dd.meetings);
+      setSheets(dd.sheets);
+      setRowsFlat(dd.rows);
+      setActivity(dd.activity);
+      setLoaded({ members: true, projects: true, tasks: true, meetings: true, sheets: true, rows: true });
+      setError('');
+      setAccess('ok');
+    });
+  }, []);
 
   // Auth
   useEffect(() => {
@@ -209,7 +231,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Store>(() => {
-    const myEmail = emailKey(user?.email);
+    const myEmail = DEMO ? OWNER_EMAIL : emailKey(user?.email);
     const isOwner = myEmail === OWNER_EMAIL;
     const isExec = isOwner || me?.role === 'exec';
     const rows = new Map<string, Row[]>();
