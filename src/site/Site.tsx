@@ -150,6 +150,13 @@ export function SiteHome() {
   const school = site.school || DEFAULT_SITE.school;
   const kicker = school ? `A student-run ${school} club` : 'A student-run high school club';
   const insta = site.instagram?.replace(/^@/, '');
+  useEffect(() => {
+    // the page renders after load, so jump to #team etc. once the sections exist
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    const t = window.setTimeout(() => document.getElementById(id)?.scrollIntoView(), 60);
+    return () => window.clearTimeout(t);
+  }, [loaded]);
 
   return (
     <div className="site">
