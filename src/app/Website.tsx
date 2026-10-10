@@ -76,6 +76,10 @@ export function WebsitePage() {
             <Field label="Founded" hint="Year the club started. Shown above the headline.">
               <input className="input" value={f.founded ?? ''} onChange={(e) => set('founded', e.target.value)} placeholder="2021" inputMode="numeric" />
             </Field>
+            <label className="check full">
+              <input type="checkbox" checked={!!f.showTeam} onChange={(e) => set('showTeam', e.target.checked)} />
+              Show the Meet the team section (turn on once everyone has a photo)
+            </label>
             <Field label="Headline" className="full" hint="The big line at the top of the homepage. Short and confident works best.">
               <input className="input" value={f.tagline} onChange={(e) => set('tagline', e.target.value)} />
             </Field>

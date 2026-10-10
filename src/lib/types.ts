@@ -147,6 +147,7 @@ export interface SiteContent {
   activities: Activity2[];
   partnerText: string;
   founded: string;
+  showTeam?: boolean; // the Meet the team section on the website
 }
 
 export interface Activity2 {
