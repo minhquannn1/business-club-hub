@@ -8,6 +8,7 @@ import { STAGE_LABEL } from '../lib/constants';
 import { useLedger, projectMoney } from '../lib/workbook';
 import type { Task } from '../lib/types';
 import { Empty } from '../components/ui';
+import { EmptyArt } from '../components/Art';
 import { TaskForm, TaskRow, sortTasks } from './tasks';
 import { ActivityLine } from './Activity';
 import { taskProgress } from './Projects';
@@ -96,7 +97,7 @@ export function Overview() {
               </Link>
             </div>
             {myTasks.length === 0 ? (
-              <Empty title="You're clear">Nothing assigned to you right now.</Empty>
+              <Empty art={<EmptyArt.tasks />} title="You're clear">Nothing assigned to you right now.</Empty>
             ) : (
               myTasks.slice(0, 7).map((t) => <TaskRow key={t.id} task={t} onOpen={setOpen} />)
             )}

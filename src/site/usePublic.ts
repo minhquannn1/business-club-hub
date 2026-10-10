@@ -8,6 +8,19 @@ export function usePublicData() {
   const [team, setTeam] = useState<PublicMember[]>([]);
   const [loaded, setLoaded] = useState({ p: !firebaseConfigured, t: !firebaseConfigured });
   useEffect(() => {
+    if (import.meta.env.DEV && /[?&]demo/.test(window.location.search + (sessionStorage.getItem('demo') ? '&demo' : ''))) {
+      import('../lib/demo').then(({ demoData }) => {
+        const d = demoData();
+        setProjects(
+          d.projects
+            .filter((p) => p.isPublic)
+            .map((p) => ({ id: p.id, title: p.title, kind: p.kind, blurb: p.publicBlurb || p.summary, stage: p.stage, startDate: p.startDate, endDate: p.endDate, location: p.location, color: p.color, attendance: p.review?.attendance ?? 0, description: p.description, updatedAt: 0 })),
+        );
+        setTeam(d.members.filter((m) => m.role === 'exec').map((m, i) => ({ id: m.id, name: m.name, title: m.title ?? '', team: m.team ?? '', bio: i === 0 ? 'Runs the club and the spreadsheet nobody else wants.' : '', order: i })));
+        setLoaded({ p: true, t: true });
+      });
+      return;
+    }
     if (!firebaseConfigured) return;
     const a = onSnapshot(
       collection(db, 'publicProjects'),

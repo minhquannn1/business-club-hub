@@ -23,6 +23,7 @@ import { useLedger, projectMoney } from '../lib/workbook';
 import type { Project, Stage, Task } from '../lib/types';
 import { Avatar, Empty, Seg, useRun } from '../components/ui';
 import { PageHead } from './Shell';
+import { EmptyArt } from '../components/Art';
 import { ProjectForm } from './projectForm';
 
 type View = 'board' | 'timeline' | 'calendar' | 'list';
@@ -89,7 +90,7 @@ export function ProjectsPage() {
       />
       {store.projects.length === 0 ? (
         <div className="panel">
-          <Empty
+          <Empty art={<EmptyArt.board />}
             title="No projects yet"
             action={
               store.isExec ? (

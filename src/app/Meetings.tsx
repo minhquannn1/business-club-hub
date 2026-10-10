@@ -7,6 +7,7 @@ import { fmtDate, todayISO, uid } from '../lib/format';
 import type { ActionItem, Meeting } from '../lib/types';
 import { Avatar, Empty, Field, useConfirm, useRun } from '../components/ui';
 import { PageHead } from './Shell';
+import { EmptyArt } from '../components/Art';
 import { useTaskPerms } from './tasks';
 
 export function MeetingsPage() {
@@ -44,7 +45,7 @@ export function MeetingsPage() {
       </div>
       <div className="panel">
         {list.length === 0 ? (
-          <Empty
+          <Empty art={<EmptyArt.notes />}
             title={store.meetings.length ? 'No notes match' : 'No meetings written up yet'}
             action={
               !store.meetings.length ? (

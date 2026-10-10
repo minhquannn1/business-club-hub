@@ -259,9 +259,10 @@ export function Field({ label, hint, children, className = '' }: { label: string
   );
 }
 
-export function Empty({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
+export function Empty({ title, children, action, art }: { title: string; children?: ReactNode; action?: ReactNode; art?: ReactNode }) {
   return (
     <div className="empty">
+      {art}
       <strong>{title}</strong>
       {children && <p>{children}</p>}
       {action}

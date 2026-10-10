@@ -5,6 +5,8 @@ import { saveSite } from '../lib/actions';
 import type { SiteContent } from '../lib/types';
 import { Empty, Field, useRun } from '../components/ui';
 import { PageHead } from './Shell';
+import { DEFAULT_SITE } from '../lib/constants';
+import { Pictograms, PICTOGRAM_KEYS } from '../components/Art';
 
 const CURRENCIES = ['VND', 'USD', 'EUR', 'GBP', 'SGD', 'AUD'];
 
@@ -71,7 +73,10 @@ export function WebsitePage() {
             <Field label="School year">
               <input className="input" value={f.year} onChange={(e) => set('year', e.target.value)} placeholder="2026–27" />
             </Field>
-            <Field label="Tagline" className="full" hint="One sentence under the club name at the top of the page.">
+            <Field label="Founded" hint="Year the club started. Shown above the headline.">
+              <input className="input" value={f.founded ?? ''} onChange={(e) => set('founded', e.target.value)} placeholder="2021" inputMode="numeric" />
+            </Field>
+            <Field label="Headline" className="full" hint="The big line at the top of the homepage. Short and confident works best.">
               <input className="input" value={f.tagline} onChange={(e) => set('tagline', e.target.value)} />
             </Field>
           </div>
@@ -91,11 +96,43 @@ export function WebsitePage() {
         </section>
         <section className="panel">
           <div className="panel-head">
+            <h2 className="h3">What we do</h2>
+            <span className="small faint">The cards under the hero</span>
+          </div>
+          <div className="panel-body" style={{ display: 'grid', gap: 14 }}>
+            {(f.activities?.length ? f.activities : DEFAULT_SITE.activities).map((a, i) => {
+              const list = f.activities?.length ? f.activities : DEFAULT_SITE.activities;
+              const upd = (patch: Partial<typeof a>) => set('activities', list.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+              const Icon = Pictograms[a.icon] ?? Pictograms.pitch;
+              return (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '56px 150px minmax(0, 1fr)', gap: 12, alignItems: 'start' }} className="activity-edit">
+                  <Icon size={48} />
+                  <select className="select" value={a.icon} onChange={(e) => upd({ icon: e.target.value })} aria-label="Icon">
+                    {PICTOGRAM_KEYS.map((k) => (
+                      <option key={k} value={k}>
+                        {k[0].toUpperCase() + k.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    <input className="input" value={a.title} onChange={(e) => upd({ title: e.target.value })} aria-label="Title" />
+                    <textarea className="textarea" style={{ minHeight: 56 }} value={a.text} onChange={(e) => upd({ text: e.target.value })} aria-label="Description" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+        <section className="panel">
+          <div className="panel-head">
             <h2 className="h3">Joining and contact</h2>
           </div>
           <div className="panel-body form-grid">
-            <Field label="How to join" className="full">
+            <Field label="For students: how to join" className="full">
               <textarea className="textarea" style={{ minHeight: 64 }} value={f.joinText} onChange={(e) => set('joinText', e.target.value)} />
+            </Field>
+            <Field label="For partners and sponsors" className="full">
+              <textarea className="textarea" style={{ minHeight: 64 }} value={f.partnerText ?? ''} onChange={(e) => set('partnerText', e.target.value)} />
             </Field>
             <Field label="Sign-up link" hint="A Google Form, for example. Leave empty to hide the button.">
               <input className="input" type="url" value={f.joinLink} onChange={(e) => set('joinLink', e.target.value)} placeholder="https://forms.gle/..." />

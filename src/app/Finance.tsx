@@ -9,6 +9,7 @@ import { colToLetters, isErr, offsetAllRows, FUNCTIONS } from '../lib/formula';
 import type { Sheet } from '../lib/types';
 import { Empty, Field, Modal, Seg, useConfirm, useMenu, useRun } from '../components/ui';
 import { PageHead } from './Shell';
+import { EmptyArt } from '../components/Art';
 import { SheetGrid } from './SheetGrid';
 import { LedgerEntryForm } from './ledgerEntry';
 
@@ -172,7 +173,7 @@ function Summary({ onNewLedger, onRecord }: { onNewLedger: () => void; onRecord:
   if (!hasLedger)
     return (
       <div className="panel" style={{ marginTop: 16 }}>
-        <Empty
+        <Empty art={<EmptyArt.money />}
           title="No ledger yet"
           action={
             store.isExec ? (

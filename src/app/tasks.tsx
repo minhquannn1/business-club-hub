@@ -9,6 +9,7 @@ import { dueLabel, toDate } from '../lib/format';
 import type { Priority, Task, TaskStatus } from '../lib/types';
 import { Avatar, Empty, Field, Modal, Seg, useConfirm, useRun } from '../components/ui';
 import { PageHead } from './Shell';
+import { EmptyArt } from '../components/Art';
 
 export function useTaskPerms() {
   const { isExec, myEmail, projectMap } = useStore();
@@ -345,7 +346,7 @@ export function TasksPage() {
           </button>
         </form>
         {filtered.filter((t) => showDone || t.status !== 'done').length === 0 ? (
-          <Empty title={scope === 'mine' ? 'Nothing on your plate' : 'No tasks match'}>
+          <Empty art={<EmptyArt.tasks />} title={scope === 'mine' ? 'Nothing on your plate' : 'No tasks match'}>
             {scope === 'mine' ? 'Tasks assigned to you show up here. Add one above, or check what the rest of the club is doing.' : 'Try another filter, or add the first task.'}
           </Empty>
         ) : (

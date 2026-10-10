@@ -21,7 +21,7 @@ import {
 import { useStore } from '../lib/store';
 import { setActor } from '../lib/actions';
 import { Avatar, useMenu } from '../components/ui';
-import { initials } from '../lib/format';
+import { LogoMark } from '../components/Art';
 import { CommandPalette } from './CommandPalette';
 import { ProfileModal } from './Members';
 import '../styles/app.css';
@@ -99,9 +99,7 @@ export function Shell() {
     <>
       <div className="side-top">
         <Link to="/app" className="side-brand">
-          <span className="wordmark-mark" aria-hidden="true">
-            {initials(site.shortName || site.clubName)}
-          </span>
+          <LogoMark size={32} />
           <span className="ellipsis">{site.shortName || site.clubName}</span>
         </Link>
         <button className="btn btn-ghost btn-icon side-close" onClick={() => setDrawer(false)} aria-label="Close menu">
@@ -144,9 +142,7 @@ export function Shell() {
             <MenuIcon />
           </button>
           <Link to="/app" className="side-brand">
-            <span className="wordmark-mark" aria-hidden="true">
-              {initials(site.shortName || site.clubName)}
-            </span>
+            <LogoMark size={30} title={site.shortName || site.clubName} />
           </Link>
           <button className="btn btn-ghost btn-icon" onClick={() => setPalette(true)} aria-label="Search">
             <Search />

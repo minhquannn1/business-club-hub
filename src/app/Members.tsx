@@ -8,6 +8,7 @@ import { ago } from '../lib/format';
 import type { Member, Role } from '../lib/types';
 import { Avatar, Empty, Field, Modal, Seg, useConfirm, useRun, useToast } from '../components/ui';
 import { PageHead } from './Shell';
+import { EmptyArt } from '../components/Art';
 
 export function MembersPage() {
   const store = useStore();
@@ -101,7 +102,7 @@ export function MembersPage() {
           )}
           {store.members.length <= 1 && store.isExec && (
             <div className="panel">
-              <Empty title="It's just you so far" action={<button className="btn" onClick={() => setInviting(true)}><Plus /> Add members</button>}>
+              <Empty art={<EmptyArt.people />} title="It's just you so far" action={<button className="btn" onClick={() => setInviting(true)}><Plus /> Add members</button>}>
                 Add people by their Google email. They sign in with that account and land straight in the workspace.
               </Empty>
             </div>

@@ -143,6 +143,15 @@ export interface SiteContent {
   instagram: string;
   currency: string; // ISO code, e.g. VND
   year: string;
+  activities: Activity2[];
+  partnerText: string;
+  founded: string;
+}
+
+export interface Activity2 {
+  icon: string; // key in Pictograms
+  title: string;
+  text: string;
 }
 
 export interface PublicProject {
