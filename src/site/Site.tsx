@@ -364,6 +364,8 @@ export function SiteHome() {
                   <CurlyArrow />
                 </span>
               </Polaroid>
+              <div className="team-side">
+              <Polaroid photo={PHOTOS.meeting} small tilt={3} tape={false} className="team-meeting" />
               <div className="team-note">
                 <span className="tape" aria-hidden="true" />
                 <p className="hand team-note-title">roll call</p>
@@ -383,6 +385,7 @@ export function SiteHome() {
                 <a href="#join" className="team-note-cta">
                   Want to join us? <ArrowRight size={16} aria-hidden="true" />
                 </a>
+              </div>
               </div>
             </div>
             {team.length > 0 && (

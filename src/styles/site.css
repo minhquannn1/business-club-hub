@@ -1508,3 +1508,20 @@
     display: none;
   }
 }
+
+.team-side {
+  display: grid;
+  gap: 28px;
+}
+.team-meeting {
+  width: 82%;
+  justify-self: end;
+  margin-right: -8px;
+}
+@media (max-width: 860px) {
+  .team-meeting {
+    width: 70%;
+    justify-self: center;
+    margin-right: 0;
+  }
+}
