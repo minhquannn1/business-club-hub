@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { announcementEmail, assignedEmail, daysBetween, digestEmail, digestFor, meetingEmail, nagToday, roundsToMention, vnToday, type MailTask } from './emails';
+import { announcementEmail, assignedEmail, daysBetween, digestEmail, digestFor, inviteEmail, meetingEmail, nagToday, roundsToMention, vnToday, type MailTask } from './emails';
 
 const brand = { clubName: 'Business Club', siteUrl: 'https://isphbusiness.club' };
 const t = (id: string, dueDate: string, status = 'todo'): MailTask => ({ id, title: `Task ${id}`, projectId: 'p1', assigneeEmail: 'a@x.com', dueDate, status });
@@ -101,5 +101,22 @@ describe('competition deadlines', () => {
     expect(m.text).toContain('Competition deadlines');
     expect(m.text).toContain('- IPS (Wharton, in 7 days, 17 Oct)');
     expect(m.html).toContain('/app/competitions');
+  });
+});
+
+describe('invites', () => {
+  it('tells a guest which project and which email to sign in with', () => {
+    const m = inviteEmail(brand, { email: 'khanh@school.vn', role: 'guest' }, 'Minh Quan', ['Wharton Investment Competition 2026-27']);
+    expect(m.subject).toBe("You're invited to work on Wharton Investment Competition 2026-27");
+    expect(m.text).toContain('Minh Quan added you to the');
+    expect(m.text).toContain('as a guest');
+    expect(m.text).toContain('- Wharton Investment Competition 2026-27');
+    expect(m.text).toContain('Use this email: khanh@school.vn');
+    expect(m.html).toContain('https://isphbusiness.club/login');
+  });
+  it('invites a club member to the workspace', () => {
+    const m = inviteEmail(brand, { email: 'a@x.com', role: 'member' }, 'Minh Quan', []);
+    expect(m.subject).toContain('workspace');
+    expect(m.text).not.toContain('guest');
   });
 });

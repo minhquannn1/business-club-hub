@@ -20,6 +20,7 @@ export interface Member {
   joinedAt?: number;
   lastSeenAt?: number;
   emailOff?: boolean; // no task reminder emails
+  invitedAt?: number; // when the sign-in email was last sent (set by the server)
 }
 
 export interface ProjectReview {

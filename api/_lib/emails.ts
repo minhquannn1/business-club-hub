@@ -18,6 +18,8 @@ export interface MailMember {
   title?: string;
   team?: string;
   emailOff?: boolean;
+  uid?: string;
+  invitedAt?: number;
 }
 
 export interface Email {
@@ -213,6 +215,31 @@ export function announcementEmail(brand: Brand, a: { title: string; body: string
   const url = `${brand.siteUrl}/app`;
   const text = `${a.body.trim()}\n\n${sign}\n\nWorkspace: ${url}`;
   return { subject: a.title, html: layout(brand, a.title, html, { label: 'Open the workspace', url }), text };
+}
+
+/** Sent when someone is added to the workspace, with the link to sign in. */
+export function inviteEmail(brand: Brand, invitee: MailMember, by: string, projects: string[]): Email {
+  const guest = invitee.role === 'guest';
+  const url = `${brand.siteUrl}/login`;
+  const subject =
+    guest && projects.length === 1
+      ? `You're invited to work on ${projects[0]}`
+      : guest && projects.length > 1
+        ? `You're invited to work on ${projects.length} projects with ${brand.clubName}`
+        : `You're invited to the ${brand.clubName} workspace`;
+  const intro = `${by} added you to the ${brand.clubName} workspace${guest ? ' as a guest' : ''}.`;
+  const what = guest
+    ? `There you can see your tasks, deadlines and meeting notes for ${projects.length === 1 ? 'it' : 'them'}. You also get an email when you're given a task or something is due.`
+    : `It's where the club keeps its projects, tasks and meetings. You also get an email when you're given a task or something is due.`;
+  const how = 'To sign in, open the link and choose Sign in with Google. Use this email:';
+  const list = projects.length
+    ? `<p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#444">${projects.length === 1 ? 'Your project' : 'Your projects'}</p><ul style="margin:0 0 16px;padding-left:20px">${projects.map((p) => `<li style="margin:0 0 6px;line-height:1.5"><strong>${esc(p)}</strong></li>`).join('')}</ul>`
+    : '';
+  const html = `<p style="margin:0 0 14px;line-height:1.6">Hi, ${esc(intro)}</p>${list}<p style="margin:0 0 14px;line-height:1.6">${esc(what)}</p>
+<p style="margin:0 0 14px;line-height:1.6">${esc(how)} <strong>${esc(invitee.email)}</strong></p>`;
+  const text = [`Hi, ${intro}`, projects.length ? `\n${projects.length === 1 ? 'Your project' : 'Your projects'}:\n${projects.map((p) => `- ${p}`).join('\n')}` : '', '', what, '', `${how} ${invitee.email}`, '', `Sign in: ${url}`].join('\n');
+  const footer = `You got this because ${esc(by)} added ${esc(invitee.email)} to the ${esc(brand.clubName)} workspace. If you weren't expecting it, you can ignore this email.`;
+  return { subject, html: layout(brand, subject, html, { label: 'Sign in', url }, footer), text };
 }
 
 export interface MailMeeting {

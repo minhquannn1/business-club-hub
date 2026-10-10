@@ -5,11 +5,12 @@
    POST { type: 'test' }                     email yourself a sample reminder
    POST { type: 'task', taskId }             tell the assignee about a new task
    POST { type: 'announcement', id }         exec only: email an announcement
-   POST { type: 'meeting', id }              email meeting notes to who was there */
-import { announcementEmail, assignedEmail, digestEmail, digestFor, meetingEmail, vnToday, type MailMeeting, type MailTask } from './_lib/emails.js';
+   POST { type: 'meeting', id }              email meeting notes to who was there
+   POST { type: 'invite', email }            exec only: send someone who was just added the sign-in link */
+import { announcementEmail, assignedEmail, digestEmail, digestFor, inviteEmail, meetingEmail, vnToday, type MailMeeting, type MailTask } from './_lib/emails.js';
 import { HttpError, OWNER_EMAIL, adminAuth, brand, db, fail, header, loadMembers, mailConfigured, projectTitles, send, type Req, type Res } from './_lib/server.js';
 
-type Body = { type?: string; taskId?: string; id?: string };
+type Body = { type?: string; taskId?: string; id?: string; email?: string };
 
 export default async function handler(req: Req, res: Res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -112,6 +113,26 @@ export default async function handler(req: Req, res: Res) {
         await send(b, meetingEmail(b, { ...m, actionItems: m.actionItems || [] }, projects.get(m.projectId) || '', nameOf), { bcc: to }, me);
         await ref.update({ emailedAt: Date.now() });
         res.status(200).json({ ok: true, sent: to.length });
+        return;
+      }
+
+      case 'invite': {
+        if (!isExec) throw new HttpError(403, 'Only the exec team can add people');
+        const email = (body.email || '').trim().toLowerCase();
+        const target = members.get(email);
+        if (!target) throw new HttpError(404, 'That person is not on the list');
+        // already signed in, or invited a moment ago (double click)
+        if (target.uid || (target.invitedAt && Date.now() - target.invitedAt < 60_000)) {
+          res.status(200).json({ ok: true, sent: 0, already: true });
+          return;
+        }
+        const snap = await db().collection('projects').get();
+        const projects = snap.docs
+          .filter((d) => d.get('stage') !== 'done' && (d.get('leadEmail') === email || ((d.get('teamEmails') as string[] | undefined) ?? []).includes(email)))
+          .map((d) => (d.get('title') as string) || 'Untitled project');
+        await send(b, inviteEmail(b, target, nameOf(me), projects), { to: email }, me);
+        await db().doc(`members/${email}`).update({ invitedAt: Date.now() });
+        res.status(200).json({ ok: true, sent: 1 });
         return;
       }
 

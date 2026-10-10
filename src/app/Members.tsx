@@ -55,7 +55,7 @@ export function MembersPage() {
               {openTasks} open {openTasks === 1 ? 'task' : 'tasks'}
             </span>
             {leads > 0 && <span>Leads {leads}</span>}
-            {!m.uid && <span className="pending">Hasn't signed in yet</span>}
+            {!m.uid && <span className="pending">{m.invitedAt ? 'Invited, not signed in yet' : "Hasn't signed in yet"}</span>}
           </span>
         </span>
       </button>
@@ -150,9 +150,10 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
   const [mailReady, setMailReady] = useState(false);
   const [testing, setTesting] = useState(false);
   const [handTo, setHandTo] = useState('');
+  const [inviting, setInviting] = useState(false);
   useEffect(() => {
-    if (self) emailReady().then(setMailReady);
-  }, [self]);
+    if (self || store.isExec) emailReady().then(setMailReady);
+  }, [self, store.isExec]);
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((x) => ({ ...x, [k]: v }));
   const [sitePhoto, setSitePhoto] = useState(member.sitePhoto ?? '');
   const [busyPhoto, setBusyPhoto] = useState(false);
@@ -217,8 +218,27 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
         <Avatar member={member} size={56} />
         <div style={{ minWidth: 0 }}>
           <div className="ellipsis">{member.email}</div>
-          <div className="small faint">{member.uid ? `Last active ${ago(member.lastSeenAt ?? 0) || 'recently'}` : "Hasn't signed in yet"}</div>
+          <div className="small faint">
+            {member.uid ? `Last active ${ago(member.lastSeenAt ?? 0) || 'recently'}` : "Hasn't signed in yet"}
+            {!member.uid && member.invitedAt ? `, invite sent ${ago(member.invitedAt)}` : ''}
+          </div>
         </div>
+        {asExec && !self && !member.uid && mailReady && (
+          <button
+            type="button"
+            className={`btn btn-sm ${inviting ? 'is-busy' : ''}`}
+            style={{ marginLeft: 'auto', flex: 'none' }}
+            disabled={inviting}
+            onClick={async () => {
+              setInviting(true);
+              const r = await notify({ type: 'invite', email: member.id });
+              setInviting(false);
+              toast(r.ok ? (r.sent ? `Invite sent to ${member.email}` : 'Already sent a moment ago') : r.error || 'Email failed', r.ok ? undefined : { kind: 'error' });
+            }}
+          >
+            <Mail /> {member.invitedAt ? 'Resend invite' : 'Send invite'}
+          </button>
+        )}
       </div>
       <div className="form-grid">
         <Field label="Name">
@@ -406,7 +426,12 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
   const [team, setTeam] = useState('');
   const [title, setTitle] = useState('');
   const [onProjects, setOnProjects] = useState<string[]>([]);
-  const [done, setDone] = useState<string[] | null>(null);
+  const [done, setDone] = useState<{ added: string[]; emailed: string[] } | null>(null);
+  const [mailReady, setMailReady] = useState(false);
+  const [sendInvite, setSendInvite] = useState(true);
+  useEffect(() => {
+    emailReady().then(setMailReady);
+  }, []);
   const openProjects = store.projects.filter((p) => p.stage !== 'done');
   const isGuest = role === 'guest';
   const parsed = emails
@@ -418,23 +443,33 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
   const valid = parsed.filter((e) => !invalid.includes(e) && !already.includes(e));
   const link = `${window.location.origin}/app`;
 
+  const [saving, setSaving] = useState(false);
   const save = async () => {
+    setSaving(true);
     const added: string[] = [];
+    const emailed: string[] = [];
     for (const email of valid) {
       const ok = await run(async () => {
-        const projects = openProjects.filter((p) => onProjects.includes(p.id));
+        const projects = isGuest ? openProjects.filter((p) => onProjects.includes(p.id)) : [];
         await inviteMember({ email, name: '', role, title: isGuest ? '' : parsed.length === 1 ? title : '', team: isGuest ? '' : team, showOnSite: role === 'exec' }, projects);
         return true;
       });
-      if (ok) added.push(email);
+      if (!ok) continue;
+      added.push(email);
+      if (mailReady && sendInvite) {
+        const r = await notify({ type: 'invite', email });
+        if (r.ok && r.sent) emailed.push(email);
+        else if (!r.ok) toast(`Added ${email}, but the invite email failed: ${r.error}`, { kind: 'error' });
+      }
     }
-    if (added.length) setDone(added);
+    setSaving(false);
+    if (added.length) setDone({ added, emailed });
   };
 
   if (done)
     return (
       <Modal
-        title={`Added ${done.length} ${done.length === 1 ? 'person' : 'people'}`}
+        title={`Added ${done.added.length} ${done.added.length === 1 ? 'person' : 'people'}`}
         onClose={onClose}
         size="narrow"
         footer={
@@ -443,8 +478,14 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
           </button>
         }
       >
+        {done.emailed.length > 0 && (
+          <p style={{ marginBottom: 10 }}>
+            <Mail size={16} aria-hidden="true" style={{ verticalAlign: '-3px', marginRight: 6 }} />
+            Invite email with the sign-in link sent to {done.emailed.join(', ')}.
+          </p>
+        )}
         <p className="muted" style={{ marginBottom: 14 }}>
-          Send them this link. They sign in with Google using the email you added.
+          {done.emailed.length === done.added.length ? 'You can also send them this link yourself.' : 'Send them this link.'} They sign in with Google using the email you added.
         </p>
         <div style={{ display: 'flex', gap: 8 }}>
           <input className="input" readOnly value={link} onFocus={(e) => e.target.select()} aria-label="Workspace link" />
@@ -469,7 +510,7 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
           <button className="btn" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn-primary" disabled={!valid.length || invalid.length > 0 || (isGuest && !onProjects.length)} onClick={save}>
+          <button className={`btn btn-primary ${saving ? 'is-busy' : ''}`} disabled={saving || !valid.length || invalid.length > 0 || (isGuest && !onProjects.length)} onClick={save}>
             Add {valid.length > 1 ? `${valid.length} people` : isGuest ? 'guest' : 'member'}
           </button>
         </>
@@ -545,6 +586,12 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
               ))}
             </datalist>
           </Field>
+        )}
+        {mailReady && (
+          <label className="check full">
+            <input type="checkbox" checked={sendInvite} onChange={(e) => setSendInvite(e.target.checked)} />
+            Email {valid.length > 1 ? 'them' : isGuest ? 'the guest' : 'them'} an invite with the sign-in link{isGuest ? ' and the projects they are on' : ''}
+          </label>
         )}
       </div>
     </Modal>

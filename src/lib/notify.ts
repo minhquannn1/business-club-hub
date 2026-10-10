@@ -1,6 +1,6 @@
 import { auth } from './firebase';
 
-export type NotifyBody = { type: 'test' } | { type: 'task'; taskId: string } | { type: 'announcement'; id: string } | { type: 'meeting'; id: string };
+export type NotifyBody = { type: 'test' } | { type: 'task'; taskId: string } | { type: 'announcement'; id: string } | { type: 'meeting'; id: string } | { type: 'invite'; email: string };
 
 export interface NotifyResult {
   ok: boolean;
