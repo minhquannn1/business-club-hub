@@ -11,6 +11,7 @@ import { ActivityPage } from './Activity';
 import { WebsitePage } from './Website';
 import { Login } from './Login';
 import { ImportPage } from './planning';
+import { CompetitionsPage } from './Competitions';
 
 /** The signed-in workspace, loaded as its own chunk so the public site stays light. */
 export default function WorkspaceRoutes({ login }: { login?: boolean }) {
@@ -21,6 +22,8 @@ export default function WorkspaceRoutes({ login }: { login?: boolean }) {
         <Route index element={<Overview />} />
         <Route path="projects" element={<ProjectsPage />} />
         <Route path="projects/:id" element={<ProjectDetail />} />
+        <Route path="competitions" element={<CompetitionsPage />} />
+        <Route path="competitions/:id" element={<ProjectDetail />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="meetings" element={<MeetingsPage />} />
         <Route path="meetings/:id" element={<MeetingPage />} />

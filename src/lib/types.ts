@@ -49,10 +49,20 @@ export interface Project {
   publicBlurb: string;
   review?: ProjectReview;
   links?: ProjectLink[];
+  organizer?: string; // competitions: who runs it
+  rounds?: Round[]; // competitions: official deadlines and rounds
   order: number;
   createdAt: number;
   createdBy: string;
   updatedAt: number;
+}
+
+/** One official deadline or stage of a competition. */
+export interface Round {
+  id: string;
+  name: string;
+  date: string; // yyyy-MM-dd, '' when not announced yet
+  done?: boolean;
 }
 
 export interface Task {

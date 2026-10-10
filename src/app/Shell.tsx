@@ -20,6 +20,7 @@ import {
   Megaphone,
   Plus,
   ReceiptText,
+  Trophy,
 } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { setActor } from '../lib/actions';
@@ -87,6 +88,7 @@ export function Shell() {
   const links: { to: string; label: string; icon: ReactNode; badge?: number; end?: boolean; exec?: boolean }[] = [
     { to: '/app', label: 'Overview', icon: <LayoutDashboard />, end: true },
     { to: '/app/projects', label: 'Projects', icon: <FolderKanban /> },
+    { to: '/app/competitions', label: 'Competitions', icon: <Trophy /> },
     { to: '/app/tasks', label: 'Tasks', icon: <CheckSquare />, badge: myOpen },
     { to: '/app/meetings', label: 'Meetings', icon: <NotebookPen /> },
     { to: '/app/finance', label: 'Finance', icon: <Wallet /> },

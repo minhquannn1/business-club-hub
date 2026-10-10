@@ -36,6 +36,45 @@ export const roleRank = (title?: string) => {
   return i < 0 ? ROLES.length : i;
 };
 
+/** Stage names as they read for a competition. */
+export const COMP_STAGE_LABEL: Record<Stage, string> = { idea: 'Thinking about it', planning: 'Signed up', active: 'Competing', done: 'Finished' };
+
+export interface CompetitionTemplate {
+  key: string;
+  title: string;
+  organizer: string;
+  summary: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  website: string;
+  rounds: { name: string; date: string }[];
+}
+
+/** Known competitions, with their official dates. Checked against the organiser's page. */
+export const COMPETITION_TEMPLATES: CompetitionTemplate[] = [
+  {
+    key: 'wharton-2026',
+    title: 'Wharton Investment Competition 2026-27',
+    organizer: 'Wharton Global Youth Program',
+    summary: 'Teams of 4 to 6 manage a virtual portfolio for a client case and write up the strategy.',
+    description:
+      'Wharton Global High School Investment Competition 2026-27.\n\nTeams: 4 to 6 students in grades 9 to 12, with a teacher from the school as advisor. Free to enter.\n\nJudged on the strategy: how well it fits the client in the case, the research and how clearly it is written. Portfolio returns are not what wins.\n\nTools: SurveyMonkey Apply for the case, updates and submissions; the Wharton Investment Simulator (WInS) for the portfolio.\n\nDeadlines are 5:00 p.m. New York time, which is 4:00 or 5:00 a.m. the next morning in Vietnam. Submit on the evening of the deadline day to be safe.\n\nAfter the final report, judges pick 50 semifinalists for virtual semifinals; the top 10 go to the Global Finale in Philadelphia.',
+    startDate: '2026-09-28',
+    endDate: '2026-12-04',
+    website: 'https://globalyouth.wharton.upenn.edu/competitions/investment-competition/',
+    rounds: [
+      { name: 'Trading starts on WInS', date: '2026-09-28' },
+      { name: 'Official team roster', date: '2026-10-09' },
+      { name: 'Trading Notes Analysis', date: '2026-10-23' },
+      { name: 'Investment Policy Statement (IPS)', date: '2026-11-06' },
+      { name: 'Final report and school documents', date: '2026-12-04' },
+      { name: 'Top 50 semifinalists announced', date: '' },
+      { name: 'Global Finale in Philadelphia (top 10)', date: '2027-04-29' },
+    ],
+  },
+];
+
 export const KIND_LABEL: Record<string, string> = { event: 'Event', project: 'Ongoing project', competition: 'Competition' };
 
 export const TEAMS = ['Leadership', 'MAC (Marketing & Content)', 'Finance & Accounting', 'Logistics & Operations', 'Technical'];

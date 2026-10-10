@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../lib/store';
 import { createProject, updateProject } from '../lib/actions';
-import { PROJECT_COLORS, STAGES } from '../lib/constants';
+import { COMP_STAGE_LABEL, PROJECT_COLORS, STAGES } from '../lib/constants';
 import { parseLooseNumber } from '../lib/formula';
 import { getCurrency } from '../lib/format';
 import type { Project, ProjectKind, Stage } from '../lib/types';
@@ -30,10 +30,11 @@ export function blankProject(stage: Stage = 'idea', order = Date.now()): Draft {
   };
 }
 
-export function ProjectForm({ project, stage, onClose, onCreated }: { project?: Project; stage?: Stage; onClose: () => void; onCreated?: (id: string) => void }) {
+export function ProjectForm({ project, stage, kind, onClose, onCreated }: { project?: Project; stage?: Stage; kind?: ProjectKind; onClose: () => void; onCreated?: (id: string) => void }) {
   const store = useStore();
   const run = useRun();
-  const [f, setF] = useState<Draft>(() => (project ? { ...blankProject(), ...project } : { ...blankProject(stage), leadEmail: store.myEmail }));
+  const [f, setF] = useState<Draft>(() => (project ? { ...blankProject(), ...project } : { ...blankProject(stage), kind: kind ?? 'event', leadEmail: store.myEmail }));
+  const isComp = f.kind === 'competition';
   const [budgetText, setBudgetText] = useState(project?.budgetPlanned ? String(project.budgetPlanned) : '');
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setF((x) => ({ ...x, [k]: v }));
   const toggleTeam = (email: string) => set('teamEmails', f.teamEmails.includes(email) ? f.teamEmails.filter((e) => e !== email) : [...f.teamEmails, email]);
@@ -50,7 +51,7 @@ export function ProjectForm({ project, stage, onClose, onCreated }: { project?: 
         return project.id;
       }
       return createProject(data);
-    }, project ? 'Project saved' : 'Project created');
+    }, project ? 'Saved' : isComp ? 'Competition created' : 'Project created');
     if (id) {
       onClose();
       if (!project) onCreated?.(id);
@@ -60,7 +61,7 @@ export function ProjectForm({ project, stage, onClose, onCreated }: { project?: 
   return (
     <Modal
       size="wide"
-      title={project ? 'Edit project' : 'New project or event'}
+      title={project ? (isComp ? 'Edit competition' : 'Edit project') : isComp ? 'New competition' : 'New project or event'}
       onClose={onClose}
       footer={
         <>
@@ -81,8 +82,13 @@ export function ProjectForm({ project, stage, onClose, onCreated }: { project?: 
         }}
       >
         <Field label="Name" className="full">
-          <input className="input" value={f.title} onChange={(e) => set('title', e.target.value)} placeholder="e.g. Business Week" />
+          <input className="input" value={f.title} onChange={(e) => set('title', e.target.value)} placeholder={isComp ? 'e.g. Wharton Investment Competition 2026-27' : 'e.g. Business Week'} />
         </Field>
+        {isComp && (
+          <Field label="Organised by" className="full" hint="Add the deadlines on the competition's page after you create it.">
+            <input className="input" value={f.organizer ?? ''} onChange={(e) => set('organizer', e.target.value)} placeholder="e.g. Wharton Global Youth Program" />
+          </Field>
+        )}
         <Field label="Type">
           <Seg<ProjectKind>
             label="Type"
@@ -99,7 +105,7 @@ export function ProjectForm({ project, stage, onClose, onCreated }: { project?: 
           <select className="select" value={f.stage} onChange={(e) => set('stage', e.target.value as Stage)}>
             {STAGES.map((s) => (
               <option key={s.key} value={s.key}>
-                {s.label}
+                {isComp ? COMP_STAGE_LABEL[s.key] : s.label}
               </option>
             ))}
           </select>

@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, MoreHorizontal, Pencil, Plus, Star, Trash2, Wallet } from 'lucide-react';
 import { useStore, memberName } from '../lib/store';
 import { createTask, deleteProject, updateProject } from '../lib/actions';
-import { KIND_LABEL, STAGES, STAGE_LABEL, TASK_STATUSES } from '../lib/constants';
+import { COMP_STAGE_LABEL, KIND_LABEL, STAGES, STAGE_LABEL, TASK_STATUSES } from '../lib/constants';
+import { RoundsPanel } from './Competitions';
 import { fmtDate, fmtRange, money } from '../lib/format';
 import { useLedger, projectMoney } from '../lib/workbook';
 import type { ProjectReview, Stage, Task } from '../lib/types';
@@ -48,6 +49,8 @@ export function ProjectDetail() {
     );
 
   const canEdit = store.isExec || p.leadEmail === store.myEmail;
+  const isComp = p.kind === 'competition';
+  const stageLabel = isComp ? COMP_STAGE_LABEL : STAGE_LABEL;
   const prog = taskProgress(store.tasks, p.id);
   const m = projectMoney(entries, p.id);
   const pct = p.budgetPlanned ? Math.min(100, Math.round((m.spent / p.budgetPlanned) * 100)) : 0;
@@ -65,8 +68,8 @@ export function ProjectDetail() {
     <div className="page">
       <PageHead
         back={
-          <Link to="/app/projects" className="crumb">
-            <ArrowLeft size={15} /> Projects
+          <Link to={isComp ? '/app/competitions' : '/app/projects'} className="crumb">
+            <ArrowLeft size={15} /> {isComp ? 'Competitions' : 'Projects'}
           </Link>
         }
         title={
@@ -84,16 +87,16 @@ export function ProjectDetail() {
                 style={{ width: 'auto', minHeight: 36 }}
                 value={p.stage}
                 aria-label="Stage"
-                onChange={(e) => run(() => updateProject(p, { stage: e.target.value as Stage }, 'moved', `to ${STAGE_LABEL[e.target.value as Stage]}`))}
+                onChange={(e) => run(() => updateProject(p, { stage: e.target.value as Stage }, 'moved', `to ${stageLabel[e.target.value as Stage]}`))}
               >
                 {STAGES.map((s) => (
                   <option key={s.key} value={s.key}>
-                    {s.label}
+                    {stageLabel[s.key]}
                   </option>
                 ))}
               </select>
             ) : (
-              <span className="chip">{STAGE_LABEL[p.stage]}</span>
+              <span className="chip">{stageLabel[p.stage]}</span>
             )}
             {canEdit && (
               <button className="btn" onClick={() => setEditing(true)}>
@@ -148,6 +151,7 @@ export function ProjectDetail() {
 
           {tab === 'overview' && (
             <div className="section-gap">
+              {isComp && <RoundsPanel p={p} canEdit={canEdit} />}
               <section className="panel">
                 <div className="panel-head">
                   <h2 className="h3">Next up</h2>
@@ -289,6 +293,12 @@ export function ProjectDetail() {
                   <dt>Type</dt>
                   <dd>{KIND_LABEL[p.kind] ?? 'Project'}</dd>
                 </div>
+                {isComp && p.organizer && (
+                  <div>
+                    <dt>Organiser</dt>
+                    <dd>{p.organizer}</dd>
+                  </div>
+                )}
                 <div>
                   <dt>Dates</dt>
                   <dd>{fmtRange(p.startDate, p.endDate)}</dd>

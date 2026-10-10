@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { announcementEmail, assignedEmail, daysBetween, digestEmail, digestFor, meetingEmail, nagToday, vnToday, type MailTask } from './emails';
+import { announcementEmail, assignedEmail, daysBetween, digestEmail, digestFor, meetingEmail, nagToday, roundsToMention, vnToday, type MailTask } from './emails';
 
 const brand = { clubName: 'Business Club', siteUrl: 'https://isphbusiness.club' };
 const t = (id: string, dueDate: string, status = 'todo'): MailTask => ({ id, title: `Task ${id}`, projectId: 'p1', assigneeEmail: 'a@x.com', dueDate, status });
@@ -74,5 +74,32 @@ describe('emails', () => {
     expect(m.subject).toBe('Notes: Sport Day planning');
     expect(m.text).toContain('- Buy ice (Bình, by 28 Oct)');
     expect(m.text).not.toContain('Decisions');
+  });
+});
+
+describe('competition deadlines', () => {
+  const rounds = [
+    { name: 'IPS', date: '2026-10-17' },
+    { name: 'Trading notes', date: '2026-10-13' },
+    { name: 'Roster', date: '2026-10-11' },
+    { name: 'Final report', date: '2026-12-04' },
+    { name: 'Done one', date: '2026-10-11', done: true },
+    { name: 'No date', date: '' },
+  ];
+  it('mentions deadlines 7, 3 and 1 days ahead and on the day', () => {
+    const r = roundsToMention(rounds, 'Wharton', 'p1', '2026-10-10');
+    expect(r.map((x) => [x.name, x.daysLeft])).toEqual([
+      ['IPS', 7],
+      ['Trading notes', 3],
+      ['Roster', 1],
+    ]);
+  });
+  it('can send a reminder with only competition deadlines', () => {
+    const r = roundsToMention(rounds, 'Wharton', 'p1', '2026-10-10');
+    const m = digestEmail(brand, { email: 'a@x.com', name: 'Linh' }, digestFor([], '2026-10-10'), projects, r);
+    expect(m.subject).toBe('Wharton: Roster tomorrow');
+    expect(m.text).toContain('Competition deadlines');
+    expect(m.text).toContain('- IPS (Wharton, in 7 days, 17 Oct)');
+    expect(m.html).toContain('/app/competitions');
   });
 });

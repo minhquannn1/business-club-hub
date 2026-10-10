@@ -19,6 +19,16 @@ export function demoData() {
   const projects: Project[] = [
     { ...base, id: 'bw', title: 'Business Week', kind: 'event', summary: 'Four lunchtime activities and a Wednesday assembly talk.', stage: 'planning', leadEmail: OWNER_EMAIL, teamEmails: ['an@school.vn', 'minh@school.vn'], startDate: d(9), endDate: d(13), location: 'Canteen and main hall', color: '#2F6FDE', budgetPlanned: 3_000_000, isPublic: true, goals: '200 students take part across the week.\nAt least 3 teachers judge the pitch contest.' },
     { ...base, id: 'bake', title: 'Bake sale for charity', kind: 'event', summary: 'Sell homemade snacks at break time.', stage: 'idea', leadEmail: 'chi@school.vn', startDate: '', endDate: '', color: '#C2410C', budgetPlanned: 0 },
+    { ...base, id: 'wh', title: 'Wharton Investment Competition 2026-27', kind: 'competition', summary: 'Teams of 4 to 6 manage a virtual portfolio for a client case and write up the strategy.', stage: 'active', leadEmail: OWNER_EMAIL, teamEmails: ['linh@school.vn', 'an@school.vn', 'minh@school.vn'], startDate: '2026-09-28', endDate: '2026-12-04', color: '#1E3FD8', budgetPlanned: 0, organizer: 'Wharton Global Youth Program', rounds: [
+      { id: 'r1', name: 'Trading starts on WInS', date: '2026-09-28', done: true },
+      { id: 'r2', name: 'Official team roster', date: '2026-10-09', done: true },
+      { id: 'r3', name: 'Trading Notes Analysis', date: '2026-10-23' },
+      { id: 'r4', name: 'Investment Policy Statement (IPS)', date: '2026-11-06' },
+      { id: 'r5', name: 'Final report and school documents', date: '2026-12-04' },
+      { id: 'r6', name: 'Top 50 semifinalists announced', date: '' },
+      { id: 'r7', name: 'Global Finale in Philadelphia (top 10)', date: '2027-04-29' },
+    ] },
+    { ...base, id: 'vnec', title: 'VNEC 2026', kind: 'competition', summary: 'VinUni National High School Entrepreneurship Competition.', stage: 'done', leadEmail: OWNER_EMAIL, startDate: '2026-04-11', endDate: '2026-04-11', color: '#0E9F6E', budgetPlanned: 0, organizer: 'VinUniversity', review: { result: 'Most Favourite Team' } },
     { ...base, id: 'pod', title: 'Founder interview podcast', kind: 'project', summary: 'Monthly interviews with local business owners.', stage: 'active', leadEmail: 'minh@school.vn', startDate: d(-20), endDate: d(60), color: '#9333EA', budgetPlanned: 800_000 },
     { ...base, id: 'fair', title: 'Careers fair stall', kind: 'event', summary: 'Club stand at the school careers fair.', stage: 'done', leadEmail: 'an@school.vn', startDate: d(-30), endDate: d(-30), color: '#1E8A5A', budgetPlanned: 500_000, review: { attendance: 140, rating: 4, wentWell: 'Quiz drew a crowd', improve: 'Print fewer flyers' }, isPublic: true },
   ];

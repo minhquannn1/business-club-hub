@@ -78,6 +78,24 @@ export function digestFor(tasks: MailTask[], today: string): Digest {
   return { overdue, today: dueToday, tomorrow, send };
 }
 
+/* ---------- competition deadlines ---------- */
+
+export interface MailRound {
+  name: string;
+  date: string;
+  competition: string;
+  projectId: string;
+  daysLeft: number;
+}
+
+/** Team members hear about a deadline a week before, 3 days before, the day before and on the day. */
+export function roundsToMention(rounds: { name: string; date: string; done?: boolean }[], competition: string, projectId: string, today: string): MailRound[] {
+  return rounds
+    .filter((r) => !r.done && r.date)
+    .map((r) => ({ name: r.name, date: r.date, competition, projectId, daysLeft: daysBetween(today, r.date) }))
+    .filter((r) => [0, 1, 3, 7].includes(r.daysLeft));
+}
+
 /* ---------- html ---------- */
 
 export function esc(s: string): string {
@@ -129,30 +147,45 @@ const reminderFooter = (brand: Brand) =>
 
 /* ---------- the emails ---------- */
 
-export function digestEmail(brand: Brand, member: MailMember, d: Digest, projects: Map<string, string>): Email {
+export function digestEmail(brand: Brand, member: MailMember, d: Digest, projects: Map<string, string>, rounds: MailRound[] = []): Email {
   const groups: [string, MailTask[], boolean][] = [
     ['Due today', d.today, false],
     ['Due tomorrow', d.tomorrow, false],
     ['Overdue', d.overdue, true],
   ];
   const all = [...d.today, ...d.tomorrow, ...d.overdue];
+  const soonest = [...rounds].sort((a, b) => a.daysLeft - b.daysLeft)[0];
+  const whenText = (n: number) => (n === 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`);
   const subject =
-    all.length === 1
+    all.length === 0 && soonest
+      ? `${soonest.competition}: ${soonest.name} ${whenText(soonest.daysLeft)}`
+      : all.length === 1
       ? `${d.today.length ? 'Due today' : d.tomorrow.length ? 'Due tomorrow' : 'Overdue'}: ${all[0].title}`
       : d.today.length
         ? `${d.today.length} task${d.today.length > 1 ? 's' : ''} due today`
         : `${all.length} tasks need you`;
   let html = `<p style="margin:0 0 16px;line-height:1.6">Hi ${esc(firstName(member))}, here's what's on your list.</p>`;
   let text = `Hi ${firstName(member)}, here's what's on your list.\n`;
+  if (rounds.length) {
+    const sorted = [...rounds].sort((a, b) => a.daysLeft - b.daysLeft);
+    const li = sorted.map((r) => ({
+      html: `<li style="margin:0 0 6px;line-height:1.5"><strong>${esc(r.name)}</strong><span style="color:#666"> &middot; ${esc(r.competition)}, ${esc(whenText(r.daysLeft))} (${esc(shortDate(r.date))})</span></li>`,
+      text: `- ${r.name} (${r.competition}, ${whenText(r.daysLeft)}, ${shortDate(r.date)})`,
+    }));
+    html += `<p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:#1f3dff">Competition deadlines</p><ul style="margin:0 0 16px;padding-left:20px">${li.map((x) => x.html).join('')}</ul>`;
+    text += `\nCompetition deadlines\n${li.map((x) => x.text).join('\n')}\n`;
+  }
   for (const [label, list, showDue] of groups) {
     if (!list.length) continue;
     const l = taskList(list, projects, showDue);
     html += `<p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:${label === 'Overdue' ? '#c62828' : '#444'}">${label}</p>${l.html}`;
     text += `\n${label}\n${l.text}\n`;
   }
-  const url = `${brand.siteUrl}/app/tasks`;
-  text += `\nOpen your tasks: ${url}\n`;
-  return { subject, html: layout(brand, subject, html, { label: 'Open your tasks', url }, reminderFooter(brand)), text };
+  const onlyRounds = all.length === 0 && rounds.length > 0;
+  const url = onlyRounds ? `${brand.siteUrl}/app/competitions` : `${brand.siteUrl}/app/tasks`;
+  const cta = onlyRounds ? 'Open competitions' : 'Open your tasks';
+  text += `\n${cta}: ${url}\n`;
+  return { subject, html: layout(brand, subject, html, { label: cta, url }, reminderFooter(brand)), text };
 }
 
 export function assignedEmail(brand: Brand, member: MailMember | undefined, task: MailTask, by: string, projectTitle: string): Email {

@@ -1866,3 +1866,180 @@ button.welcome-step:hover {
   padding-bottom: 4px;
   font-size: 14px;
 }
+
+/* ---------- competitions ---------- */
+.comp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.comp-card {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 18px 18px 16px;
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  color: var(--ink);
+  text-decoration: none;
+  border-top: 4px solid var(--c, var(--ink));
+}
+.comp-card:hover {
+  box-shadow: var(--shadow-pop);
+}
+.comp-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.comp-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+.comp-next {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 560;
+}
+.comp-next svg {
+  flex: none;
+  color: var(--ink-3);
+}
+.comp-next .chip {
+  margin-left: auto;
+  flex: none;
+}
+.comp-people {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-height: 26px;
+}
+.comp-templates {
+  margin-top: 24px;
+  display: grid;
+  gap: 6px;
+}
+.comp-template-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+.comp-template {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 14px 16px;
+  border: 1.5px dashed var(--rule);
+  border-radius: var(--radius-m);
+}
+.comp-template .row-main {
+  flex: 1 1 220px;
+}
+.comp-trophy {
+  flex: none;
+  color: var(--warn);
+}
+.deadline-row .chip {
+  flex: none;
+}
+.rounds {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+.round {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+}
+.round + .round::before {
+  /* the line that joins the deadlines */
+  content: '';
+  position: absolute;
+  left: 28px;
+  top: -10px;
+  height: 20px;
+  border-left: 2px solid var(--rule-soft);
+}
+.round-check {
+  position: relative;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-3);
+  background: var(--surface);
+  color: transparent;
+  cursor: pointer;
+}
+.round-check svg {
+  width: 13px;
+  height: 13px;
+}
+.round-check:disabled {
+  cursor: default;
+}
+.round.is-done .round-check {
+  background: var(--pos);
+  border-color: var(--pos);
+  color: #fff;
+}
+.round.is-next .round-check {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+.round-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+.round-name {
+  font-weight: 600;
+}
+.round.is-done .round-name {
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+.round.is-next .round-name {
+  color: var(--ink);
+}
+.round-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 18px 16px;
+  border-top: 1px solid var(--rule-soft);
+}
+.round-add .input:first-child {
+  flex: 1 1 220px;
+}
+.round-add .input[type='date'] {
+  flex: 0 1 170px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .round .btn-icon {
+    opacity: 0;
+  }
+  .round:hover .btn-icon,
+  .round:focus-within .btn-icon {
+    opacity: 1;
+  }
+}

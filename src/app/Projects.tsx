@@ -68,7 +68,7 @@ export function ProjectsPage() {
     <div className={`page ${view === 'board' || view === 'timeline' ? 'page-full' : ''}`}>
       <PageHead
         title="Projects and events"
-        sub={`${store.projects.filter((p) => p.stage !== 'done').length} active, ${store.projects.filter((p) => p.stage === 'done').length} done`}
+        sub={`${store.projects.filter((p) => p.kind !== 'competition' && p.stage !== 'done').length} active, ${store.projects.filter((p) => p.kind !== 'competition' && p.stage === 'done').length} done. Competitions have their own page.`}
         actions={
           <>
             <Seg<View>
@@ -195,7 +195,7 @@ function Board({ onNew }: { onNew: (s: Stage) => void }) {
   const canDrag = (p: Project) => store.isExec || p.leadEmail === store.myEmail;
   const byStage = useMemo(() => {
     const m = new Map<Stage, Project[]>(STAGES.map((s) => [s.key, []]));
-    for (const p of store.projects) m.get(p.stage)?.push(p);
+    for (const p of store.projects) if (p.kind !== 'competition') m.get(p.stage)?.push(p);
     m.forEach((list, k) => list.sort((a, b) => (k === 'done' ? (b.endDate || b.startDate || '').localeCompare(a.endDate || a.startDate || '') : (a.startDate || '9999').localeCompare(b.startDate || '9999'))));
     return m;
   }, [store.projects]);
@@ -406,7 +406,7 @@ function ProjectList() {
   const { entries } = useLedger();
   const [sort, setSort] = useState<{ k: 'title' | 'stage' | 'date' | 'budget'; dir: 1 | -1 }>({ k: 'date', dir: 1 });
   const stageRank: Record<Stage, number> = { idea: 0, planning: 1, active: 2, done: 3 };
-  const rows = [...store.projects].sort((a, b) => {
+  const rows = store.projects.filter((p) => p.kind !== 'competition').sort((a, b) => {
     let c = 0;
     if (sort.k === 'title') c = a.title.localeCompare(b.title);
     if (sort.k === 'stage') c = stageRank[a.stage] - stageRank[b.stage];

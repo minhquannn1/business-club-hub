@@ -1,8 +1,9 @@
-/* Daily task reminders. Vercel Cron calls this every morning (see vercel.json).
-   Each member with something due today or tomorrow, or overdue, gets one email.
+/* Daily reminders. Vercel Cron calls this every morning (see vercel.json).
+   Each member with a task due today or tomorrow, an overdue task, or a competition
+   deadline coming up for a team they are on gets one email.
    It runs at most once per Vietnam day, so calling it again does nothing. */
-import { digestEmail, digestFor, vnToday, type MailTask } from './_lib/emails.js';
-import { brand, db, fail, header, loadMembers, projectTitles, send, type Req, type Res } from './_lib/server.js';
+import { digestEmail, digestFor, roundsToMention, vnToday, type MailRound, type MailTask } from './_lib/emails.js';
+import { brand, db, fail, header, loadMembers, send, type Req, type Res } from './_lib/server.js';
 
 export default async function handler(req: Req, res: Res) {
   try {
@@ -20,7 +21,18 @@ export default async function handler(req: Req, res: Res) {
       return;
     }
 
-    const [members, projects, b, taskSnap] = await Promise.all([loadMembers(), projectTitles(), brand(), db().collection('tasks').where('status', 'in', ['todo', 'doing']).get()]);
+    const [members, projectSnap, b, taskSnap] = await Promise.all([loadMembers(), db().collection('projects').get(), brand(), db().collection('tasks').where('status', 'in', ['todo', 'doing']).get()]);
+    const projects = new Map(projectSnap.docs.map((d) => [d.id, (d.get('title') as string) || '']));
+
+    // competition deadlines go to the lead and the team
+    const roundsFor = new Map<string, MailRound[]>();
+    for (const d of projectSnap.docs) {
+      const p = d.data() as { kind?: string; stage?: string; title?: string; leadEmail?: string; teamEmails?: string[]; rounds?: { name: string; date: string; done?: boolean }[] };
+      if (p.kind !== 'competition' || p.stage === 'done' || !p.rounds?.length) continue;
+      const due = roundsToMention(p.rounds, p.title || 'Competition', d.id, today);
+      if (!due.length) continue;
+      for (const email of new Set([p.leadEmail, ...(p.teamEmails ?? [])].filter(Boolean) as string[])) roundsFor.set(email, [...(roundsFor.get(email) ?? []), ...due]);
+    }
     const byPerson = new Map<string, MailTask[]>();
     for (const d of taskSnap.docs) {
       const t = { id: d.id, ...(d.data() as Omit<MailTask, 'id'>) };
@@ -32,13 +44,14 @@ export default async function handler(req: Req, res: Res) {
 
     const sent: string[] = [];
     const failed: string[] = [];
-    for (const [email, tasks] of byPerson) {
+    for (const email of new Set([...byPerson.keys(), ...roundsFor.keys()])) {
       const m = members.get(email);
       if (!m || m.emailOff) continue;
-      const d = digestFor(tasks, today);
-      if (!d.send) continue;
+      const d = digestFor(byPerson.get(email) ?? [], today);
+      const rounds = roundsFor.get(email) ?? [];
+      if (!d.send && !rounds.length) continue;
       try {
-        await send(b, digestEmail(b, m, d, projects), { to: email });
+        await send(b, digestEmail(b, m, d, projects, rounds), { to: email });
         sent.push(email);
       } catch (e) {
         console.error('[mail] digest', email, e);

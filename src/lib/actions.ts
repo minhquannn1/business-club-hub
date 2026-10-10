@@ -13,8 +13,8 @@ import {
   type DocumentData,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Activity, Announcement, Column, Meeting, Member, Project, ProjectLink, PublicMember, PublicProject, QuickLink, Row, SchoolDate, Sheet, SiteContent, Task } from './types';
-import { LEDGER_CATEGORIES } from './constants';
+import type { Activity, Announcement, Column, ProjectKind, Round, Meeting, Member, Project, ProjectLink, PublicMember, PublicProject, QuickLink, Row, SchoolDate, Sheet, SiteContent, Task } from './types';
+import { LEDGER_CATEGORIES, PROJECT_COLORS, type CompetitionTemplate } from './constants';
 import { uid } from './format';
 import { notify } from './notify';
 
@@ -531,7 +531,7 @@ export async function deleteLink(id: string) {
 
 export interface PlannedProject {
   title: string;
-  kind?: 'event' | 'project';
+  kind?: ProjectKind;
   stage?: Project['stage'];
   startDate?: string;
   endDate?: string;
@@ -545,6 +545,8 @@ export interface PlannedProject {
   tasks?: { title: string; dueDate?: string; notes?: string; mine?: boolean }[];
   /** budget lines become a budget sheet named after the project */
   budget?: { item: string; qty?: number; unit?: number; notes?: string }[];
+  organizer?: string;
+  rounds?: { name: string; date: string; done?: boolean }[];
 }
 
 export interface ImportBundle {
@@ -583,6 +585,8 @@ export async function importBundle(b: ImportBundle, baseOrder: number) {
       isPublic: false,
       publicBlurb: '',
       links: pp.links ?? [],
+      ...(pp.organizer ? { organizer: pp.organizer } : {}),
+      ...(pp.rounds?.length ? { rounds: pp.rounds.map((r) => ({ id: uid('r'), name: r.name, date: r.date, done: !!r.done })) } : {}),
       order: order++,
     });
     made.set(pp.title, id);
@@ -627,4 +631,35 @@ export async function createAnnouncement(a: Pick<Announcement, 'title' | 'body' 
 
 export async function deleteAnnouncement(id: string) {
   await deleteDoc(doc(db, 'announcements', id));
+}
+
+/* ---------------- competitions ---------------- */
+
+export async function saveRounds(p: Project, rounds: Round[], verb = '', detail = '') {
+  await updateProject(p, { rounds }, verb, detail);
+}
+
+/** Exec: start a competition from a known template, with its official deadlines. */
+export async function createCompetition(t: CompetitionTemplate, order: number, leadEmail: string): Promise<string> {
+  return createProject({
+    title: t.title,
+    kind: 'competition',
+    summary: t.summary,
+    description: t.description,
+    goals: '',
+    stage: 'planning',
+    leadEmail,
+    teamEmails: [],
+    startDate: t.startDate,
+    endDate: t.endDate,
+    location: '',
+    color: PROJECT_COLORS[0],
+    budgetPlanned: 0,
+    isPublic: false,
+    publicBlurb: '',
+    organizer: t.organizer,
+    rounds: t.rounds.map((r) => ({ id: uid('r'), name: r.name, date: r.date, done: false })),
+    links: [{ label: 'Official page', url: t.website }],
+    order,
+  });
 }
