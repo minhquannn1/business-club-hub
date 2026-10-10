@@ -1,0 +1,113 @@
+rules_version = '2';
+
+// Business Club Hub security rules.
+// Only people on the member list can read workspace data. Exec members can change everything;
+// project leads can change their own project and its tasks; everyone else can tick off their own tasks.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+    function isOwner() {
+      return signedIn() && myEmail() == 'ngocminhquannguyen@gmail.com';
+    }
+    function memberPath() {
+      return /databases/$(database)/documents/members/$(myEmail());
+    }
+    function isMember() {
+      return signedIn() && (isOwner() || exists(memberPath()));
+    }
+    function isExec() {
+      return isOwner() || (signedIn() && exists(memberPath()) && get(memberPath()).data.role == 'exec');
+    }
+    function leads(projectId) {
+      return isMember() && projectId is string && projectId != ''
+        && exists(/databases/$(database)/documents/projects/$(projectId))
+        && get(/databases/$(database)/documents/projects/$(projectId)).data.leadEmail == myEmail();
+    }
+    function changesOnly(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    // ---------- public website ----------
+    match /site/{doc} {
+      allow read: if true;
+      allow write: if isExec();
+    }
+    match /publicProjects/{id} {
+      allow read: if true;
+      allow write: if isExec() || leads(id);
+    }
+    match /publicTeam/{id} {
+      allow read: if true;
+      allow write: if isExec() || (isMember() && id == myEmail().replace('[^a-z0-9]', '_'));
+    }
+
+    // ---------- people ----------
+    match /members/{email} {
+      allow read: if isMember() || (signedIn() && email == myEmail());
+      allow create: if isExec() || (isOwner() && email == myEmail());
+      allow update: if isExec()
+        || (isMember() && email == myEmail() && changesOnly(['name', 'photoURL', 'bio', 'uid', 'lastSeenAt', 'showOnSite']));
+      allow delete: if isExec() && email != 'ngocminhquannguyen@gmail.com';
+    }
+
+    // ---------- work ----------
+    match /projects/{id} {
+      allow read: if isMember();
+      allow create, delete: if isExec();
+      allow update: if isExec()
+        || (leads(id) && request.resource.data.leadEmail == resource.data.leadEmail);
+    }
+
+    match /tasks/{id} {
+      allow read: if isMember();
+      allow create: if isMember() && request.resource.data.createdBy == myEmail()
+        && (isExec() || leads(request.resource.data.projectId) || request.resource.data.assigneeEmail == myEmail());
+      allow update: if isExec()
+        || leads(resource.data.projectId)
+        || (isMember() && resource.data.createdBy == myEmail() && resource.data.assigneeEmail == myEmail()
+            && request.resource.data.assigneeEmail == myEmail()
+            && (request.resource.data.projectId == resource.data.projectId || request.resource.data.projectId == '' || leads(request.resource.data.projectId)))
+        || (isMember() && resource.data.assigneeEmail == myEmail() && changesOnly(['status', 'updatedAt', 'completedAt']));
+      allow delete: if isExec()
+        || leads(resource.data.projectId)
+        || (isMember() && resource.data.createdBy == myEmail() && resource.data.assigneeEmail == myEmail());
+    }
+
+    match /meetings/{id} {
+      allow read: if isMember();
+      allow create: if isMember() && request.resource.data.createdBy == myEmail();
+      allow update, delete: if isExec()
+        || (isMember() && resource.data.createdBy == myEmail())
+        || leads(resource.data.projectId);
+    }
+
+    match /activity/{id} {
+      allow read: if isMember();
+      allow create: if isMember() && request.resource.data.actorEmail == myEmail();
+      allow update, delete: if false;
+    }
+
+    // ---------- money ----------
+    match /sheets/{sheetId} {
+      allow read: if isMember();
+      allow write: if isExec();
+      match /rows/{rowId} {
+        allow read: if isMember();
+        allow write: if isExec();
+      }
+    }
+    match /{path=**}/rows/{rowId} {
+      allow read: if isMember();
+    }
+    match /receipts/{id} {
+      allow read: if isMember();
+      allow write: if isExec();
+    }
+  }
+}

@@ -1,0 +1,326 @@
+.sheet-shell {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-m) var(--radius-m);
+  min-height: 420px;
+  height: calc(100dvh - 210px);
+}
+@media (max-width: 900px) {
+  .sheet-shell {
+    height: calc(100dvh - 230px);
+  }
+}
+.sheet-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--rule-soft);
+  flex-wrap: wrap;
+}
+.fbar {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--rule);
+  min-height: 36px;
+}
+.fbar-name {
+  width: 74px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink-2);
+  border-right: 1px solid var(--rule-soft);
+}
+.fbar-fx {
+  width: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 13px;
+  border-right: 1px solid var(--rule-soft);
+}
+.fbar input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  padding: 0 10px;
+  background: none;
+  font-size: 14px;
+}
+.fbar input:disabled {
+  color: var(--ink-2);
+}
+.grid-scroll {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  outline: none;
+  overscroll-behavior: contain;
+}
+.grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 13.5px;
+  user-select: none;
+}
+.grid th,
+.grid td {
+  height: 32px;
+  padding: 0;
+  border-right: 1px solid var(--rule-soft);
+  border-bottom: 1px solid var(--rule-soft);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--surface-2);
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 1px solid var(--rule);
+  height: 44px;
+}
+.col-head {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  padding: 0 8px;
+  cursor: pointer;
+  line-height: 1.15;
+}
+.col-head .letter {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.col-head .name {
+  font-size: 13px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.col-head .name svg {
+  width: 12px;
+  height: 12px;
+  color: var(--link);
+  flex: none;
+}
+th.col-sel {
+  background: color-mix(in srgb, var(--marker) 30%, var(--surface-2));
+}
+.col-resize {
+  position: absolute;
+  right: -3px;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: col-resize;
+  z-index: 2;
+}
+.col-resize:hover,
+.col-resize.active {
+  background: var(--focus);
+  opacity: 0.5;
+}
+.grid .rn {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 46px;
+  min-width: 46px;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
+  border-right: 1px solid var(--rule);
+}
+.grid thead .rn {
+  z-index: 4;
+}
+.grid .rn.row-sel {
+  background: color-mix(in srgb, var(--marker) 30%, var(--surface-2));
+  color: var(--ink);
+  font-weight: 650;
+}
+.cell {
+  position: relative;
+  padding: 0 8px !important;
+  cursor: cell;
+  text-overflow: ellipsis;
+  background: var(--surface);
+}
+.cell.right {
+  text-align: right;
+}
+.cell.in-range {
+  background: color-mix(in srgb, var(--focus) 10%, var(--surface));
+}
+.cell.active {
+  box-shadow: inset 0 0 0 2px var(--focus);
+  z-index: 1;
+}
+.cell.formula-ref {
+  box-shadow: inset 0 0 0 2px var(--pos);
+}
+.cell .err {
+  color: var(--neg);
+  font-weight: 650;
+}
+.cell .opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cell .opt-in {
+  color: var(--pos);
+  font-weight: 650;
+}
+.cell .opt-out {
+  color: var(--neg);
+  font-weight: 650;
+}
+.cell .rcpt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--link);
+  font-weight: 560;
+}
+.cell .rcpt svg {
+  width: 14px;
+  height: 14px;
+}
+.cell .rcpt-empty {
+  color: var(--ink-3);
+  opacity: 0;
+}
+tr:hover .cell .rcpt-empty,
+.cell.active .rcpt-empty {
+  opacity: 1;
+}
+.fill-handle {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 8px;
+  height: 8px;
+  background: var(--focus);
+  border: 1.5px solid var(--surface);
+  cursor: crosshair;
+  z-index: 4;
+}
+.cell-editor {
+  position: absolute;
+  z-index: 6;
+  border: 2px solid var(--focus);
+  background: var(--surface);
+  box-shadow: var(--shadow-pop);
+  display: flex;
+}
+.cell-editor input,
+.cell-editor select {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  outline: none;
+  padding: 0 7px;
+  font-size: 13.5px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.cell-editor.formula input {
+  color: var(--link);
+}
+.sheet-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  border-top: 1px solid var(--rule);
+  background: var(--surface-2);
+  min-height: 34px;
+  flex-wrap: wrap;
+  border-radius: 0 0 var(--radius-m) var(--radius-m);
+}
+.sheet-status strong {
+  color: var(--ink);
+  font-weight: 650;
+}
+.sheet-status .stats {
+  display: flex;
+  gap: 16px;
+}
+.add-rows {
+  padding: 10px 12px 18px 56px;
+}
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 4px 0 10px;
+  border-radius: 999px;
+  background: var(--marker-soft);
+  font-size: 12.5px;
+  font-weight: 560;
+}
+.filter-pill button {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: var(--ink-2);
+}
+.filter-pill button:hover {
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+.fn-help {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.fn-help code {
+  font-size: 12.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule-soft);
+}
+.fn-help dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 10px 0 0;
+}
+.fn-help dd {
+  margin: 0;
+  color: var(--ink-2);
+}
