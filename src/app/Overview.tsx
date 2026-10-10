@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { addDays, format } from 'date-fns';
-import { Plus } from 'lucide-react';
+import { Megaphone, Plus } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { fmtRange, money, todayISO } from '../lib/format';
 import { STAGE_LABEL } from '../lib/constants';
@@ -13,6 +13,7 @@ import { TaskForm, TaskRow, sortTasks } from './tasks';
 import { ActivityLine } from './Activity';
 import { taskProgress } from './Projects';
 import { QuickLinksPanel, SchoolCalendarPanel } from './planning';
+import { AnnouncementModal, AnnouncementsPanel } from './announcements';
 
 const VN_SURNAMES = new Set(['nguyen', 'tran', 'le', 'pham', 'hoang', 'huynh', 'phan', 'vu', 'vo', 'dang', 'bui', 'do', 'ho', 'ngo', 'duong', 'ly', 'dinh', 'truong', 'mai', 'lam', 'trinh', 'cao', 'luu', 'ha', 'ta']);
 
@@ -33,6 +34,7 @@ export function Overview() {
   const store = useStore();
   const { entries, balance } = useLedger();
   const [open, setOpen] = useState<Task | 'new' | null>(null);
+  const [announcing, setAnnouncing] = useState(false);
   const today = todayISO();
   const soon = format(addDays(new Date(), 30), 'yyyy-MM-dd');
 
@@ -66,8 +68,15 @@ export function Overview() {
           <Link to="/app/meetings/new" className="btn">
             <Plus /> Meeting notes
           </Link>
+          {store.isExec && (
+            <button className="btn" onClick={() => setAnnouncing(true)}>
+              <Megaphone /> Announce
+            </button>
+          )}
         </div>
       </header>
+
+      <AnnouncementsPanel />
 
       <div className="figures">
         <Link to="/app/tasks" className="figure">
@@ -194,6 +203,7 @@ export function Overview() {
         </div>
       </div>
       {open && <TaskForm task={open === 'new' ? undefined : open} onClose={() => setOpen(null)} />}
+      {announcing && <AnnouncementModal onClose={() => setAnnouncing(false)} />}
     </div>
   );
 }

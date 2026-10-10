@@ -292,6 +292,60 @@
   width: 220px;
 }
 
+/* ---------- announcements ---------- */
+.announce-panel {
+  margin-bottom: 20px;
+  border-left: 4px solid var(--brand);
+}
+.announce {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 18px;
+}
+.announce + .announce {
+  border-top: 1px solid var(--rule-soft);
+}
+.announce-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  color: var(--brand);
+}
+.announce-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.announce-title {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+.announce-body {
+  white-space: pre-wrap;
+  line-height: 1.55;
+  color: var(--ink-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.announce-body.open {
+  display: block;
+}
+.link-btn {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--brand);
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* ---------- overview ---------- */
 .ov-grid {
   display: grid;

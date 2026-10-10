@@ -33,3 +33,21 @@ npm install
 npm run dev
 npm test
 ```
+
+## Email (Gmail)
+
+The workspace sends email through a club Gmail account from two Vercel functions:
+
+- `api/daily.ts` runs every morning at about 7:00 Vietnam time (Vercel Cron, see `vercel.json`) and sends each member one reminder when they have tasks due today, due tomorrow, or overdue (overdue tasks are mentioned on day 1, 3 and 7, then weekly for a month).
+- `api/notify.ts` sends emails when something happens: a task is given to someone, the exec team posts an announcement with "Also email it", someone clicks "Email notes" on a meeting, or a member clicks "Send me a test email" in their profile.
+
+Set these in Vercel > Settings > Environment Variables (Production), then redeploy:
+
+| Name | Value |
+| --- | --- |
+| `GMAIL_USER` | the club Gmail address that sends the emails |
+| `GMAIL_APP_PASSWORD` | a 16-character App Password for that account (needs 2-Step Verification) |
+| `FIREBASE_SERVICE_ACCOUNT` | the whole JSON key from Firebase console > Project settings > Service accounts > Generate new private key |
+| `CRON_SECRET` | optional; any long random string |
+
+Members can turn task emails off in their profile. Gmail allows about 500 emails a day from a normal account.

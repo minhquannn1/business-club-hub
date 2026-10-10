@@ -14,7 +14,7 @@ import {
 } from 'firebase/firestore';
 import { auth, db, googleProvider, firebaseConfigured } from './firebase';
 import { OWNER_EMAIL, DEFAULT_SITE, LEDGER_CATEGORIES } from './constants';
-import type { Activity, Meeting, Member, Project, Row, Sheet, SiteContent, Task, SchoolDate, QuickLink } from './types';
+import type { Activity, Announcement, Meeting, Member, Project, Row, Sheet, SiteContent, Task, SchoolDate, QuickLink } from './types';
 import { setCurrency } from './format';
 
 export type Access = 'loading' | 'signedOut' | 'noAccess' | 'ok' | 'error';
@@ -39,6 +39,7 @@ interface Store {
   rows: Map<string, Row[]>; // sheetId -> rows sorted by order
   schoolDates: SchoolDate[];
   links: QuickLink[];
+  announcements: Announcement[];
   site: SiteContent;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -70,6 +71,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [rowsFlat, setRowsFlat] = useState<{ sheetId: string; row: Row }[]>([]);
   const [schoolDates, setSchoolDates] = useState<SchoolDate[]>([]);
   const [links, setLinks] = useState<QuickLink[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [site, setSite] = useState<SiteContent>(DEFAULT_SITE);
   const [loaded, setLoaded] = useState<Record<string, boolean>>({});
   const touched = useRef(false);
@@ -90,6 +92,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setSheets(dd.sheets);
       setRowsFlat(dd.rows);
       setActivity(dd.activity);
+      setAnnouncements(dd.announcements);
       setLoaded({ members: true, projects: true, tasks: true, meetings: true, sheets: true, rows: true });
       setError('');
       setAccess('ok');
@@ -206,6 +209,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     sub<Sheet>('sheets', collection(db, 'sheets'), setSheets);
     sub<SchoolDate>('schoolDates', collection(db, 'schoolDates'), setSchoolDates);
     sub<QuickLink>('links', collection(db, 'links'), setLinks);
+    sub<Announcement>('announcements', query(collection(db, 'announcements'), orderBy('createdAt', 'desc'), limit(20)), setAnnouncements);
     subs.push(
       onSnapshot(
         collectionGroup(db, 'rows'),
@@ -271,6 +275,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       rows,
       schoolDates: [...schoolDates].sort((a, b) => a.date.localeCompare(b.date)),
       links: [...links].sort((a, b) => a.order - b.order),
+      announcements,
       site,
       signIn: async () => {
         setError('');
@@ -288,7 +293,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await fbSignOut(auth);
       },
     };
-  }, [access, error, user, me, members, projects, tasks, meetings, activity, sheets, rowsFlat, schoolDates, links, site, loaded]);
+  }, [access, error, user, me, members, projects, tasks, meetings, activity, sheets, rowsFlat, schoolDates, links, announcements, site, loaded]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

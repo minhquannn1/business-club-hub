@@ -18,6 +18,7 @@ export interface Member {
   uid?: string;
   joinedAt?: number;
   lastSeenAt?: number;
+  emailOff?: boolean; // no task reminder emails
 }
 
 export interface ProjectReview {
@@ -90,6 +91,7 @@ export interface Meeting {
   createdBy: string;
   createdAt: number;
   updatedAt: number;
+  emailedAt?: number;
 }
 
 export interface Activity {
@@ -206,4 +208,16 @@ export interface QuickLink {
   label: string;
   url: string;
   order: number;
+}
+
+/** A message from the exec team, shown on the Overview and optionally emailed. */
+export interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  audience: string; // 'all' | 'exec' | 'team:<name>'
+  createdBy: string;
+  createdAt: number;
+  emailedAt?: number;
+  recipientCount?: number;
 }

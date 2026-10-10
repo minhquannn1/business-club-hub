@@ -52,7 +52,7 @@ service cloud.firestore {
       allow read: if isMember() || (signedIn() && email == myEmail());
       allow create: if isExec() || (isOwner() && email == myEmail());
       allow update: if isExec()
-        || (isMember() && email == myEmail() && changesOnly(['name', 'photoURL', 'sitePhoto', 'bio', 'uid', 'lastSeenAt', 'showOnSite']));
+        || (isMember() && email == myEmail() && changesOnly(['name', 'photoURL', 'sitePhoto', 'bio', 'uid', 'lastSeenAt', 'showOnSite', 'emailOff']));
       allow delete: if isExec() && email != 'ngocminhquannguyen@gmail.com';
     }
 
@@ -118,6 +118,15 @@ service cloud.firestore {
     match /links/{id} {
       allow read: if isMember();
       allow write: if isExec();
+    }
+
+    // ---------- announcements (emails are sent by the server) ----------
+    match /announcements/{id} {
+      allow read: if isMember();
+      allow create: if isExec() && request.resource.data.createdBy == myEmail()
+        && !('emailedAt' in request.resource.data);
+      allow delete: if isExec();
+      allow update: if false;
     }
   }
 }

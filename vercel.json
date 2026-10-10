@@ -1,15 +1,35 @@
 {
   "redirects": [
     {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "business-club-hub.vercel.app" }],
-      "destination": "https://isphbusiness.club/:path*",
+      "source": "/((?!api/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "business-club-hub.vercel.app"
+        }
+      ],
+      "destination": "https://isphbusiness.club/$1",
       "permanent": true
     }
   ],
   "rewrites": [
-    { "source": "/__/auth/:path*", "destination": "https://business-club-hub.firebaseapp.com/__/auth/:path*" },
-    { "source": "/__/firebase/:path*", "destination": "https://business-club-hub.firebaseapp.com/__/firebase/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/__/auth/:path*",
+      "destination": "https://business-club-hub.firebaseapp.com/__/auth/:path*"
+    },
+    {
+      "source": "/__/firebase/:path*",
+      "destination": "https://business-club-hub.firebaseapp.com/__/firebase/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/daily",
+      "schedule": "0 0 * * *"
+    }
   ]
 }

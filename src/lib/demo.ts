@@ -53,5 +53,8 @@ export function demoData() {
     { id: 'x2', at: now - 3600e3, actorEmail: OWNER_EMAIL, verb: 'moved', targetType: 'project', targetId: 'bw', targetTitle: 'Business Week', detail: 'to Planning' },
     { id: 'x3', at: now - 86400e3, actorEmail: 'an@school.vn', verb: 'created', targetType: 'meeting', targetId: 'm1', targetTitle: 'Business Week planning #1' },
   ];
-  return { members, projects, tasks, meetings, sheets, rows: rowsList.map((row) => ({ sheetId: 'ledger', row })), activity };
+  const announcements = [
+    { id: 'an1', title: 'Sport Day booth: meet at 7:15 by the gym', body: 'Bring your club shirt. Ice and drinks arrive at 7:30, so we set up the tables first.\nThe cash float is with An.', audience: 'all', createdBy: OWNER_EMAIL, createdAt: now - 2 * 3600e3, emailedAt: now - 2 * 3600e3, recipientCount: 5 },
+  ];
+  return { members, projects, tasks, meetings, sheets, rows: rowsList.map((row) => ({ sheetId: 'ledger', row })), activity, announcements };
 }

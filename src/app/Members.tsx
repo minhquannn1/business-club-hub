@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Copy, ImageUp, Plus, Search, Trash2 } from 'lucide-react';
+import { Copy, ImageUp, Mail, Plus, Search, Trash2 } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { compressSquare, inviteMember, removeMember, updateMember } from '../lib/actions';
 import { OWNER_EMAIL, ROLES, TEAMS } from '../lib/constants';
 import { ago, initials } from '../lib/format';
+import { emailReady, notify } from '../lib/notify';
 import type { Member, Role } from '../lib/types';
 import { Avatar, Empty, Field, Modal, Seg, useConfirm, useRun, useToast } from '../components/ui';
 import { PageHead } from './Shell';
@@ -128,7 +129,12 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
   const store = useStore();
   const run = useRun();
   const confirm = useConfirm();
-  const [f, setF] = useState({ name: member.name ?? '', title: member.title ?? '', team: member.team ?? '', role: member.role, bio: member.bio ?? '', showOnSite: !!member.showOnSite });
+  const [f, setF] = useState({ name: member.name ?? '', title: member.title ?? '', team: member.team ?? '', role: member.role, bio: member.bio ?? '', showOnSite: !!member.showOnSite, emailOff: !!member.emailOff });
+  const [mailReady, setMailReady] = useState(false);
+  const [testing, setTesting] = useState(false);
+  useEffect(() => {
+    if (self) emailReady().then(setMailReady);
+  }, [self]);
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((x) => ({ ...x, [k]: v }));
   const [sitePhoto, setSitePhoto] = useState(member.sitePhoto ?? '');
   const [busyPhoto, setBusyPhoto] = useState(false);
@@ -140,7 +146,7 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
   const leads = store.projects.filter((p) => p.leadEmail === member.id);
 
   const save = async () => {
-    const patch: Partial<Member> = asExec ? { ...f, name: f.name.trim() } : { name: f.name.trim(), bio: f.bio, showOnSite: f.showOnSite };
+    const patch: Partial<Member> = asExec ? { ...f, name: f.name.trim() } : { name: f.name.trim(), bio: f.bio, showOnSite: f.showOnSite, emailOff: f.emailOff };
     if (sitePhoto !== (member.sitePhoto ?? '')) patch.sitePhoto = sitePhoto;
     if (isOwnerRow) patch.role = 'exec';
     const ok = await run(async () => {
@@ -272,6 +278,30 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
           <input type="checkbox" checked={f.showOnSite} onChange={(e) => set('showOnSite', e.target.checked)} disabled={!canEdit} />
           List on the public website's team section (name, title, photo and bio)
         </label>
+        <div className="field full">
+          <label className="check">
+            <input type="checkbox" checked={!f.emailOff} onChange={(e) => set('emailOff', !e.target.checked)} disabled={!canEdit} />
+            Email {self ? 'me' : 'them'} when {self ? 'I get' : 'they get'} a new task and when tasks are due
+          </label>
+          {self && mailReady && (
+            <div>
+              <button
+                type="button"
+                className={`btn btn-sm ${testing ? 'is-busy' : ''}`}
+                disabled={testing}
+                onClick={async () => {
+                  setTesting(true);
+                  const r = await notify({ type: 'test' });
+                  setTesting(false);
+                  toast(r.ok ? `Test email sent to ${member.email}` : r.error || 'Email failed', r.ok ? undefined : { kind: 'error' });
+                }}
+              >
+                <Mail /> Send me a test email
+              </button>
+            </div>
+          )}
+          <small className="hint">Announcements and meeting notes still come by email.</small>
+        </div>
       </div>
       {(openTasks.length > 0 || leads.length > 0) && (
         <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--rule-soft)', display: 'grid', gap: 6 }}>

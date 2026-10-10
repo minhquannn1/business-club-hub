@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Check, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Check, Mail, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 import { useStore, memberName } from '../lib/store';
 import { deleteMeeting, saveMeeting } from '../lib/actions';
 import { fmtDate, todayISO, uid } from '../lib/format';
 import type { ActionItem, Meeting } from '../lib/types';
-import { Avatar, Empty, Field, useConfirm, useRun } from '../components/ui';
+import { Avatar, Empty, Field, useConfirm, useRun, useToast } from '../components/ui';
+import { emailReady, notify } from '../lib/notify';
 import { PageHead } from './Shell';
 import { EmptyArt } from '../components/Art';
 import { useTaskPerms } from './tasks';
@@ -185,6 +186,7 @@ export function MeetingPage() {
                 >
                   <Trash2 />
                 </button>
+                <EmailNotesButton meeting={existing} />
                 <button className="btn" onClick={() => setEditing(true)}>
                   <Pencil /> Edit
                 </button>
@@ -366,5 +368,34 @@ export function MeetingPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+/** Sends the notes and action items to everyone who attended. */
+function EmailNotesButton({ meeting }: { meeting: Meeting }) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [ready, setReady] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    emailReady().then(setReady);
+  }, []);
+  if (!ready) return null;
+  const people = new Set([...meeting.attendees, ...meeting.actionItems.map((a) => a.assigneeEmail)].filter(Boolean)).size;
+  return (
+    <button
+      className={`btn ${busy ? 'is-busy' : ''}`}
+      disabled={busy || people === 0}
+      title={people === 0 ? 'Add who attended first' : undefined}
+      onClick={async () => {
+        if (meeting.emailedAt && !(await confirm({ title: 'Email these notes again?', body: `They were already emailed ${fmtDate(new Date(meeting.emailedAt).toISOString().slice(0, 10), 'd MMM')}.`, confirm: 'Send again' }))) return;
+        setBusy(true);
+        const r = await notify({ type: 'meeting', id: meeting.id });
+        setBusy(false);
+        toast(r.ok ? `Emailed to ${r.sent} ${r.sent === 1 ? 'person' : 'people'}` : r.error || 'Email failed', r.ok ? undefined : { kind: 'error' });
+      }}
+    >
+      <Mail /> {meeting.emailedAt ? 'Email again' : 'Email notes'}
+    </button>
   );
 }

@@ -13,9 +13,10 @@ import {
   type DocumentData,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Activity, Column, Meeting, Member, Project, ProjectLink, PublicMember, PublicProject, QuickLink, Row, SchoolDate, Sheet, SiteContent, Task } from './types';
+import type { Activity, Announcement, Column, Meeting, Member, Project, ProjectLink, PublicMember, PublicProject, QuickLink, Row, SchoolDate, Sheet, SiteContent, Task } from './types';
 import { LEDGER_CATEGORIES } from './constants';
 import { uid } from './format';
+import { notify } from './notify';
 
 let actor = '';
 export function setActor(email: string) {
@@ -88,6 +89,8 @@ export async function createTask(data: Omit<Task, 'id' | 'createdAt' | 'createdB
   const now = Date.now();
   const ref = await addDoc(collection(db, 'tasks'), { ...data, createdAt: now, createdBy: actor, updatedAt: now });
   if (!quiet) log('created', 'task', ref.id, data.title, data.assigneeEmail ? `for ${data.assigneeEmail}` : '');
+  // email the assignee; the server skips people who assigned themselves
+  if (data.assigneeEmail && data.assigneeEmail !== actor && data.status !== 'done') void notify({ type: 'task', taskId: ref.id });
   return ref.id;
 }
 
@@ -97,6 +100,7 @@ export async function updateTask(prev: Task, patch: Partial<Task>) {
   if (patch.status === 'done' && prev.status !== 'done') p.completedAt = Date.now();
   if (patch.status && patch.status !== 'done' && prev.status === 'done') p.completedAt = deleteField();
   await updateDoc(doc(db, 'tasks', prev.id), p);
+  if (patch.assigneeEmail && patch.assigneeEmail !== prev.assigneeEmail && patch.assigneeEmail !== actor) void notify({ type: 'task', taskId: prev.id });
   if (patch.status && patch.status !== prev.status) log(patch.status === 'done' ? 'completed' : 'moved', 'task', prev.id, prev.title, patch.status === 'done' ? '' : `to ${patch.status === 'doing' ? 'in progress' : 'to do'}`);
   else if (Object.keys(patch).length) log('updated', 'task', prev.id, patch.title ?? prev.title);
 }
@@ -601,4 +605,15 @@ export async function importBundle(b: ImportBundle, baseOrder: number) {
     report.push(`${name} ledger`);
   }
   return report;
+}
+
+/* ---------------- announcements ---------------- */
+
+export async function createAnnouncement(a: Pick<Announcement, 'title' | 'body' | 'audience'>): Promise<string> {
+  const ref = await addDoc(collection(db, 'announcements'), { ...a, createdBy: actor, createdAt: Date.now() });
+  return ref.id;
+}
+
+export async function deleteAnnouncement(id: string) {
+  await deleteDoc(doc(db, 'announcements', id));
 }
