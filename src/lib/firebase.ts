@@ -6,7 +6,9 @@ import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager
 const env = import.meta.env;
 const firebaseConfig = {
   apiKey: env.VITE_FIREBASE_API_KEY as string,
-  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN as string,
+  // On the club domain, sign-in pages are proxied through it (see vercel.json),
+  // so the Google window says isphbusiness.club instead of firebaseapp.com.
+  authDomain: typeof window !== 'undefined' && window.location.hostname === 'isphbusiness.club' ? 'isphbusiness.club' : (env.VITE_FIREBASE_AUTH_DOMAIN as string),
   projectId: env.VITE_FIREBASE_PROJECT_ID as string,
   storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET as string,
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID as string,
