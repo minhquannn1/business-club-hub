@@ -387,17 +387,6 @@ export function SiteHome() {
                 </p>
               </div>
             </div>
-            <div className="stage-strip">
-              {[VNEC.pitch, VNEC.slides, VNEC.qa].map((ph, i) => (
-                <Polaroid
-                  key={ph.src}
-                  photo={ph}
-                  small
-                  tape={i === 1}
-                  tilt={[1.4, -0.8, 1.1][i]}
-                />
-              ))}
-            </div>
           </div>
         </section>
 

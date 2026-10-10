@@ -1634,17 +1634,6 @@
   color: var(--ink-2);
   max-width: 40ch;
 }
-.stage-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 28px 24px;
-  margin-top: clamp(48px, 6vw, 80px);
-}
-.stage-strip .polaroid img {
-  aspect-ratio: 1;
-  object-fit: cover;
-  object-position: center 18%;
-}
 @media (max-width: 860px) {
   .stage-grid {
     grid-template-columns: 1fr;
@@ -1653,20 +1642,6 @@
     max-width: none;
   }
 }
-@media (max-width: 560px) {
-  .stage-strip {
-    grid-template-columns: 1fr 1fr;
-    gap: 20px 14px;
-  }
-  .stage-strip .polaroid:last-child {
-    grid-column: span 2;
-  }
-  .stage-strip .polaroid:last-child img {
-    aspect-ratio: 4 / 3;
-    object-position: center 12%;
-  }
-}
-
 /* about */
 .about {
   background: var(--black);
