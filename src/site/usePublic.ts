@@ -1,3 +1,4 @@
+import { roleRank } from '../lib/constants';
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db, firebaseConfigured } from '../lib/firebase';
@@ -33,7 +34,7 @@ export function usePublicData() {
     const b = onSnapshot(
       collection(db, 'publicTeam'),
       (s) => {
-        setTeam(s.docs.map((d) => ({ ...(d.data() as PublicMember), id: d.id })).sort((x, y) => x.order - y.order || x.name.localeCompare(y.name)));
+        setTeam(s.docs.map((d) => ({ ...(d.data() as PublicMember), id: d.id })).sort((x, y) => roleRank(x.title) - roleRank(y.title) || x.order - y.order || x.name.localeCompare(y.name)));
         setLoaded((l) => ({ ...l, t: true }));
       },
       () => setLoaded((l) => ({ ...l, t: true })),

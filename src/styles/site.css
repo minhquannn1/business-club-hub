@@ -1990,3 +1990,21 @@
     font-size: 13.5px;
   }
 }
+.face-blank {
+  display: grid !important;
+  place-items: center;
+  background: transparent !important;
+  border: 2.5px dashed var(--rule) !important;
+  box-shadow: none !important;
+  color: var(--ink-3) !important;
+  font-family: var(--font-hand) !important;
+  font-size: 64px !important;
+  line-height: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.face-vacant .face-name {
+  font-family: var(--font-hand);
+  font-size: 24px;
+  color: var(--ink-3);
+}

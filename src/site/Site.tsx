@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays, Instagram, Mail, MapPin, Users } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, CalendarDays, Instagram, Mail, MapPin, Users } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { usePublicData } from './usePublic';
 import { fmtDate, fmtRange, initials, todayISO } from '../lib/format';
-import { DEFAULT_SITE } from '../lib/constants';
+import { DEFAULT_SITE, ROLES } from '../lib/constants';
 import type { PublicProject } from '../lib/types';
 import { EmptyArt, LogoMark, Pictograms, toneFor } from '../components/Art';
 import { Polaroid } from './Polaroid';
 import { CurlyArrow, Sparkle } from './Doodles';
 import { BoothGame } from './BoothGame';
 import { StickerHero } from './StickerHero';
-import { GALLERY, PHOTOS } from './photos';
+import { GALLERY } from './photos';
 import '@fontsource/caveat/latin-600.css';
 import '../styles/site.css';
 
@@ -137,6 +137,18 @@ export function SiteHome() {
   const school = site.school || DEFAULT_SITE.school;
   const kicker = school ? `A student-run ${school} club` : 'A student-run high school club';
   const insta = site.instagram?.replace(/^@/, '');
+  // the four exec roles always show; an empty one shows as "coming soon"
+  const faces = useMemo(() => {
+    const out: { key: string; role?: string; m?: (typeof team)[number] }[] = [];
+    const used = new Set<string>();
+    ROLES.forEach((role) => {
+      const ms = team.filter((m) => m.title?.trim().toLowerCase() === role.toLowerCase());
+      if (ms.length) ms.forEach((m) => (used.add(m.id), out.push({ key: m.id, m })));
+      else out.push({ key: role, role });
+    });
+    team.filter((m) => !used.has(m.id)).forEach((m) => out.push({ key: m.id, m }));
+    return out;
+  }, [team]);
   useEffect(() => {
     // the page renders after load, so jump to #team etc. once the sections exist
     const id = window.location.hash.slice(1);
@@ -304,35 +316,28 @@ export function SiteHome() {
               <h2 className="section-title display">Meet the team</h2>
               <p className="section-sub">The students who run the club this year. Say hi if you see us around school.</p>
             </div>
-            {team.length > 0 ? (
-              <ul className="faces">
-                {team.map((m, i) => (
-                  <li key={m.id} className="face" style={{ ['--r' as string]: `${[-3, 2, -1.5, 3, -2, 1][i % 6]}deg` }}>
-                    <Avatar name={m.name} photo={m.photoURL} size={400} />
-                    <strong className="face-name">{m.name}</strong>
-                    {(m.title || m.team) && <span className="face-role">{[m.title, m.team].filter(Boolean).join(', ')}</span>}
-                    {m.bio && <p className="face-bio">{m.bio}</p>}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="team-top">
-                <Polaroid photo={PHOTOS.team} tilt={-1.5} className="team-photo">
-                  <span className="hand note-us" aria-hidden="true">
-                    that's us!
-                    <CurlyArrow />
-                  </span>
-                </Polaroid>
-                <div className="team-note">
-                  <span className="tape" aria-hidden="true" />
-                  <p className="hand team-note-title">faces coming soon</p>
-                  <p className="team-note-copy">Proper profiles are on the way. Until then, look for us behind the booth table.</p>
-                  <a href="#join" className="team-note-cta">
-                    Want to join us? <ArrowRight size={16} aria-hidden="true" />
-                  </a>
-                </div>
-              </div>
-            )}
+            <ul className="faces">
+              {faces.map((f, i) => (
+                <li key={f.key} className={`face ${f.m ? '' : 'face-vacant'}`} style={{ ['--r' as string]: `${[-3, 2, -1.5, 3, -2, 1][i % 6]}deg` }}>
+                  {f.m ? (
+                    <>
+                      <Avatar name={f.m.name} photo={f.m.photoURL} size={400} />
+                      <strong className="face-name">{f.m.name}</strong>
+                      {(f.m.title || f.m.team) && <span className="face-role">{f.m.title || f.m.team}</span>}
+                      {f.m.bio && <p className="face-bio">{f.m.bio}</p>}
+                    </>
+                  ) : (
+                    <>
+                      <span className="site-avatar face-blank" aria-hidden="true">
+                        <span>?</span>
+                      </span>
+                      <strong className="face-name hand">coming soon</strong>
+                      <span className="face-role">{f.role}</span>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 

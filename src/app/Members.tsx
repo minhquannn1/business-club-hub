@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Copy, ImageUp, Plus, Search, Trash2 } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { compressSquare, inviteMember, removeMember, updateMember } from '../lib/actions';
-import { OWNER_EMAIL, TEAMS } from '../lib/constants';
+import { OWNER_EMAIL, ROLES, TEAMS } from '../lib/constants';
 import { ago, initials } from '../lib/format';
 import type { Member, Role } from '../lib/types';
 import { Avatar, Empty, Field, Modal, Seg, useConfirm, useRun, useToast } from '../components/ui';
@@ -211,7 +211,12 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
           />
         </Field>
         <Field label="Title">
-          <input className="input" value={f.title} onChange={(e) => set('title', e.target.value)} disabled={!asExec} placeholder="e.g. Treasurer" />
+          <input className="input" list="role-options" value={f.title} onChange={(e) => set('title', e.target.value)} disabled={!asExec} placeholder="Pick a role or type one" />
+          <datalist id="role-options">
+            {ROLES.map((r) => (
+              <option key={r} value={r} />
+            ))}
+          </datalist>
         </Field>
         <Field label="Team">
           <input className="input" list="team-options" value={f.team} onChange={(e) => set('team', e.target.value)} disabled={!asExec} placeholder="e.g. Marketing" />
@@ -405,7 +410,12 @@ function InviteModal({ onClose, teams }: { onClose: () => void; teams: string[] 
         </Field>
         {parsed.length <= 1 && (
           <Field label="Title" className="full">
-            <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Head of Events" />
+            <input className="input" list="invite-role-options" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Treasurer" />
+            <datalist id="invite-role-options">
+              {ROLES.map((r) => (
+                <option key={r} value={r} />
+              ))}
+            </datalist>
           </Field>
         )}
       </div>

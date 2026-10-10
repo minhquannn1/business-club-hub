@@ -29,6 +29,13 @@ export const PRIORITY_LABEL: Record<Priority, string> = { high: 'High', med: 'No
 /** Project colour swatches: each reads on white and on the dark surface. */
 export const PROJECT_COLORS = ['#1E3FD8', '#FF6B2C', '#0E9F6E', '#8B3FD9', '#D6336C', '#0B7285', '#B7791F', '#475569'];
 
+/** The exec roles, in the order they appear on the website. */
+export const ROLES = ['President', 'Vice President', 'Treasurer', 'Head of Marketing'];
+export const roleRank = (title?: string) => {
+  const i = ROLES.findIndex((r) => r.toLowerCase() === (title ?? '').trim().toLowerCase());
+  return i < 0 ? ROLES.length : i;
+};
+
 export const TEAMS = ['Leadership', 'Events', 'Marketing', 'Finance', 'Partnerships', 'Content'];
 
 export const DEFAULT_SITE: SiteContent = {

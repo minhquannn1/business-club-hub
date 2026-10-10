@@ -10,8 +10,8 @@ const now = Date.now();
 export function demoData() {
   const members: Member[] = [
     { id: OWNER_EMAIL, email: OWNER_EMAIL, name: 'Nguyễn Minh Quân', role: 'exec', title: 'President', team: 'Leadership', showOnSite: true, uid: 'u1', lastSeenAt: now },
-    { id: 'linh@school.vn', email: 'linh@school.vn', name: 'Trần Khánh Linh', role: 'exec', title: 'Treasurer', team: 'Finance', uid: 'u2', lastSeenAt: now - 3600e3 },
-    { id: 'an@school.vn', email: 'an@school.vn', name: 'Phạm Bảo An', role: 'exec', title: 'Head of Events', team: 'Events', uid: 'u3' },
+    { id: 'linh@school.vn', email: 'linh@school.vn', name: 'Trần Khánh Linh', role: 'exec', title: 'Vice President', team: 'Leadership', uid: 'u2', lastSeenAt: now - 3600e3 },
+    { id: 'an@school.vn', email: 'an@school.vn', name: 'Phạm Bảo An', role: 'exec', title: 'Treasurer', team: 'Finance', uid: 'u3' },
     { id: 'minh@school.vn', email: 'minh@school.vn', name: 'Lê Đức Minh', role: 'member', team: 'Marketing', uid: 'u4' },
     { id: 'chi@school.vn', email: 'chi@school.vn', name: 'Võ Mai Chi', role: 'member', team: 'Content' },
   ];

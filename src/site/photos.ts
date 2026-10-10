@@ -30,4 +30,4 @@ export const PHOTOS = {
   intl: p('international-day', 1400, 933, 'International Day', 'Younger students doing crafts at the International Day stall'),
 };
 
-export const GALLERY = [PHOTOS.halloween, PHOTOS.queue, PHOTOS.meeting, PHOTOS.crowd, PHOTOS.intl, PHOTOS.meeting2, PHOTOS.fair, PHOTOS.sales];
+export const GALLERY = [PHOTOS.team, PHOTOS.halloween, PHOTOS.queue, PHOTOS.meeting, PHOTOS.crowd, PHOTOS.intl, PHOTOS.meeting2, PHOTOS.fair, PHOTOS.sales];
