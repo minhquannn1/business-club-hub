@@ -12,7 +12,7 @@ const fmtCache = new Map<string, Intl.NumberFormat>();
 function nf(key: string, opts: Intl.NumberFormatOptions) {
   let f = fmtCache.get(key);
   if (!f) {
-    f = new Intl.NumberFormat(currency === 'VND' ? 'vi-VN' : 'en-US', opts);
+    f = new Intl.NumberFormat(currency === 'VND' && opts.notation !== 'compact' ? 'vi-VN' : 'en-US', opts);
     fmtCache.set(key, f);
   }
   return f;

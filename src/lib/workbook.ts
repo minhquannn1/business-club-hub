@@ -93,7 +93,12 @@ export function useLedger(): { entries: LedgerEntry[]; income: number; expense: 
         let direction: 'in' | 'out';
         if (dirRaw === 'in' || dirRaw === 'income' || dirRaw === 'thu') direction = 'in';
         else if (dirRaw === 'out' || dirRaw === 'expense' || dirRaw === 'chi') direction = 'out';
-        else direction = v < 0 ? 'out' : 'in';
+        else {
+          // a formula amount with no In/Out is a summary row (e.g. "Total out"), not money moving
+          const amtRaw = row.cells?.[sheet.columns[iAmt].key] ?? '';
+          if (iDir >= 0 && amtRaw.startsWith('=')) return;
+          direction = v < 0 ? 'out' : 'in';
+        }
         entries.push({
           sheetId: sheet.id,
           rowId: row.id,

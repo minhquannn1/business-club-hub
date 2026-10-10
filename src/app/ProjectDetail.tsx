@@ -290,7 +290,9 @@ export function ProjectDetail() {
                     {p.leadEmail ? (
                       <>
                         <Avatar member={store.memberMap.get(p.leadEmail)} email={p.leadEmail} size={24} />
-                        {memberName(store, p.leadEmail)}
+                        <span className="ellipsis" style={{ minWidth: 0, flex: 1 }}>
+                          {memberName(store, p.leadEmail)}
+                        </span>
                       </>
                     ) : (
                       <span className="faint">Nobody yet</span>

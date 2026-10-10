@@ -127,7 +127,7 @@ export function Overview() {
                           </span>
                         </span>
                         {prog.total > 0 && (
-                          <span className="small muted" style={{ width: 90 }}>
+                          <span className="small muted ov-prog" style={{ width: 90 }}>
                             <span className="progress" style={{ ['--c' as string]: p.color, display: 'block', marginBottom: 4 }}>
                               <span style={{ width: `${prog.pct}%` }} />
                             </span>

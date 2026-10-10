@@ -177,7 +177,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Workspace data
   useEffect(() => {
-    if (access !== 'ok') return;
+    if (access !== 'ok' || DEMO) return;
     const subs: (() => void)[] = [];
     const sub = <T,>(name: string, q: Parameters<typeof onSnapshot>[0], set: (v: T[]) => void) => {
       subs.push(

@@ -57,8 +57,9 @@
   display: grid;
   place-items: center;
   border-radius: 7px;
-  background: var(--ink);
-  color: var(--marker);
+  background: #14233f;
+  color: #f4d847;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
   font-size: 13px;
   font-stretch: 125%;
   letter-spacing: 0.02em;
