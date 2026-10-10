@@ -28,7 +28,7 @@ function SiteHeader({ onDark = false }: { onDark?: boolean }) {
       </a>
       <div className="site-wrap site-header-row">
         <Link to="/" className="wordmark" aria-label={`${site.clubName} home`}>
-          <LogoMark size={34} />
+          <LogoMark size={42} />
           <span className="wordmark-name">{site.shortName || site.clubName}</span>
         </Link>
         <nav className="site-nav" aria-label="Main">
@@ -147,7 +147,8 @@ export function SiteHome() {
   const past = useMemo(() => projects.filter((p) => !isUpcoming(p, today)).sort((a, b) => (b.endDate || b.startDate || '').localeCompare(a.endDate || a.startDate || '')), [projects, today]);
   const next = upcoming.find((p) => p.startDate) ?? upcoming[0];
   const activities = site.activities?.length ? site.activities : DEFAULT_SITE.activities;
-  const kicker = site.school ? `A student-run club at ${site.school}` : 'A student-run high school club';
+  const school = site.school || DEFAULT_SITE.school;
+  const kicker = school ? `A student-run ${school} club` : 'A student-run high school club';
   const insta = site.instagram?.replace(/^@/, '');
 
   return (
@@ -177,7 +178,7 @@ export function SiteHome() {
           <div className="collage">
             <Polaroid photo={HERO_PHOTOS[0]} tilt={-4} eager className="c-main">
               <span className="hand note-us" aria-hidden="true">
-                that's us!
+                we made this!
                 <CurlyArrow />
               </span>
             </Polaroid>
@@ -343,13 +344,41 @@ export function SiteHome() {
           </div>
         </section>
 
-        {team.length > 0 && (
-          <section id="team" className="site-section">
-            <div className="site-wrap">
-              <div className="section-head">
-                <h2 className="section-title display">Meet the team</h2>
-                <p className="section-sub">The students who run the club this year. Say hi if you see us around.</p>
+        <section id="team" className="site-section team">
+          <div className="site-wrap">
+            <div className="section-head">
+              <h2 className="section-title display">Meet the team</h2>
+              <p className="section-sub">The students who run the club this year. Say hi if you see us around school.</p>
+            </div>
+            <div className="team-top">
+              <Polaroid photo={PHOTOS.team} tilt={-1.5} className="team-photo">
+                <span className="hand note-us" aria-hidden="true">
+                  that's us!
+                  <CurlyArrow />
+                </span>
+              </Polaroid>
+              <div className="team-note">
+                <span className="tape" aria-hidden="true" />
+                <p className="hand team-note-title">roll call</p>
+                {team.length > 0 ? (
+                  <ul className="roll">
+                    {team.slice(0, 8).map((m) => (
+                      <li key={m.id}>
+                        <strong>{m.name}</strong>
+                        {m.title && <span>{m.title}</span>}
+                      </li>
+                    ))}
+                    {team.length > 8 && <li className="roll-more">and {team.length - 8} more below</li>}
+                  </ul>
+                ) : (
+                  <p className="team-note-copy">Proper profiles are on the way. Until then, look for us behind the booth table.</p>
+                )}
+                <a href="#join" className="team-note-cta">
+                  Want to join us? <ArrowRight size={16} aria-hidden="true" />
+                </a>
               </div>
+            </div>
+            {team.length > 0 && (
               <ul className="team-grid">
                 {team.map((m, i) => (
                   <li key={m.id} className="team-card" style={{ ['--r' as string]: `${[-1.5, 1, -0.5, 1.6][i % 4]}deg` }}>
@@ -362,9 +391,9 @@ export function SiteHome() {
                   </li>
                 ))}
               </ul>
-            </div>
-          </section>
-        )}
+            )}
+          </div>
+        </section>
 
         <section id="join" className="join">
           <div className="site-wrap join-grid">

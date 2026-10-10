@@ -6,16 +6,9 @@ import { useId, useMemo } from 'react';
    aria-hidden or labelled, and never takes pointer events.
 ---------------------------------------------------------------- */
 
+/** The club's own round logo (from its Instagram profile). */
 export function LogoMark({ size = 36, title }: { size?: number; title?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 40 40" role={title ? 'img' : undefined} aria-hidden={title ? undefined : true} aria-label={title} className="logo-mark">
-      <rect width="40" height="40" rx="10" fill="var(--logo-bg, #000)" />
-      <rect x="9" y="22" width="5" height="9" rx="1" fill="var(--logo-fg, #fff)" opacity="0.45" />
-      <rect x="17.5" y="16" width="5" height="15" rx="1" fill="var(--logo-fg, #fff)" opacity="0.75" />
-      <rect x="26" y="11" width="5" height="20" rx="1" fill="var(--logo-fg, #fff)" />
-      <circle cx="28.5" cy="6.4" r="2.4" fill="var(--logo-dot, #1f3dff)" />
-    </svg>
-  );
+  return <img src="/club-logo.webp" width={size} height={size} alt={title ?? ''} aria-hidden={title ? undefined : true} className="logo-mark" draggable={false} />;
 }
 
 /** Seeded random so the chart looks the same on every visit. */

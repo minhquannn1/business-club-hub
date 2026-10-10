@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Copy, Plus, Search, Trash2 } from 'lucide-react';
+import { Copy, ImageUp, Plus, Search, Trash2 } from 'lucide-react';
 import { useStore } from '../lib/store';
-import { inviteMember, removeMember, updateMember } from '../lib/actions';
+import { compressSquare, inviteMember, removeMember, updateMember } from '../lib/actions';
 import { OWNER_EMAIL, TEAMS } from '../lib/constants';
-import { ago } from '../lib/format';
+import { ago, initials } from '../lib/format';
 import type { Member, Role } from '../lib/types';
 import { Avatar, Empty, Field, Modal, Seg, useConfirm, useRun, useToast } from '../components/ui';
 import { PageHead } from './Shell';
@@ -130,6 +130,9 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
   const confirm = useConfirm();
   const [f, setF] = useState({ name: member.name ?? '', title: member.title ?? '', team: member.team ?? '', role: member.role, bio: member.bio ?? '', showOnSite: !!member.showOnSite });
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((x) => ({ ...x, [k]: v }));
+  const [sitePhoto, setSitePhoto] = useState(member.sitePhoto ?? '');
+  const [busyPhoto, setBusyPhoto] = useState(false);
+  const toast = useToast();
   const asExec = store.isExec;
   const canEdit = asExec || !!self;
   const isOwnerRow = member.id === OWNER_EMAIL;
@@ -138,6 +141,7 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
 
   const save = async () => {
     const patch: Partial<Member> = asExec ? { ...f, name: f.name.trim() } : { name: f.name.trim(), bio: f.bio, showOnSite: f.showOnSite };
+    if (sitePhoto !== (member.sitePhoto ?? '')) patch.sitePhoto = sitePhoto;
     if (isOwnerRow) patch.role = 'exec';
     const ok = await run(async () => {
       await updateMember(member, patch, !!self && !asExec);
@@ -220,6 +224,45 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
         <Field label="Short bio" className="full" hint="Shown on the public website if the profile is listed there.">
           <textarea className="textarea" style={{ minHeight: 64 }} value={f.bio} onChange={(e) => set('bio', e.target.value)} disabled={!canEdit} maxLength={240} />
         </Field>
+        <div className="field full">
+          <span>Website photo</span>
+          <div className="photo-pick">
+            <span className="photo-pick-preview">
+              {sitePhoto || member.photoURL ? <img src={sitePhoto || member.photoURL} alt="" referrerPolicy="no-referrer" /> : initials(f.name || member.email)}
+            </span>
+            {canEdit && (
+              <div className="photo-pick-actions">
+                <label className={`btn btn-sm ${busyPhoto ? 'is-busy' : ''}`}>
+                  <ImageUp /> {sitePhoto ? 'Change photo' : 'Upload a photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      if (!file) return;
+                      setBusyPhoto(true);
+                      try {
+                        setSitePhoto(await compressSquare(file));
+                      } catch (err) {
+                        toast((err as Error).message, { kind: 'error' });
+                      } finally {
+                        setBusyPhoto(false);
+                      }
+                    }}
+                  />
+                </label>
+                {sitePhoto && (
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSitePhoto('')}>
+                    Remove
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+          <small className="hint">Cropped to a square for the team section. Without one, the Google account photo is used.</small>
+        </div>
         <label className="check full">
           <input type="checkbox" checked={f.showOnSite} onChange={(e) => set('showOnSite', e.target.checked)} disabled={!canEdit} />
           List on the public website's team section (name, title, photo and bio)

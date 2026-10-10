@@ -1371,3 +1371,44 @@ button.row-link {
     grid-column: 1 / -1;
   }
 }
+
+/* website photo picker in the profile modal */
+.photo-pick {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.photo-pick-preview {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-m);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--rule);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.photo-pick-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-pick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.photo-pick-actions label.btn {
+  cursor: pointer;
+}
+.photo-pick-actions label.btn:focus-within {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.photo-pick-actions .is-busy {
+  opacity: 0.6;
+  pointer-events: none;
+}

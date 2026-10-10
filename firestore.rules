@@ -52,7 +52,7 @@ service cloud.firestore {
       allow read: if isMember() || (signedIn() && email == myEmail());
       allow create: if isExec() || (isOwner() && email == myEmail());
       allow update: if isExec()
-        || (isMember() && email == myEmail() && changesOnly(['name', 'photoURL', 'bio', 'uid', 'lastSeenAt', 'showOnSite']));
+        || (isMember() && email == myEmail() && changesOnly(['name', 'photoURL', 'sitePhoto', 'bio', 'uid', 'lastSeenAt', 'showOnSite']));
       allow delete: if isExec() && email != 'ngocminhquannguyen@gmail.com';
     }
 

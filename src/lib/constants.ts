@@ -34,7 +34,7 @@ export const TEAMS = ['Leadership', 'Events', 'Marketing', 'Finance', 'Partnersh
 export const DEFAULT_SITE: SiteContent = {
   clubName: 'Business Club',
   shortName: 'Business Club',
-  school: '',
+  school: 'ISPH',
   tagline: 'Learn business by running one.',
   about:
     'We are students who like the business side of things. We run booths at school events, plan our own projects and bring in people who run real businesses to talk to us.',

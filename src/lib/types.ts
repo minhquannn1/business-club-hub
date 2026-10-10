@@ -8,7 +8,8 @@ export interface Member {
   id: string; // lowercase email
   email: string;
   name: string;
-  photoURL?: string;
+  photoURL?: string; // from Google, refreshed on sign-in
+  sitePhoto?: string; // uploaded for the website (small jpeg data URL)
   role: Role;
   title?: string; // President, Treasurer...
   team?: string; // Marketing, Finance, Events...

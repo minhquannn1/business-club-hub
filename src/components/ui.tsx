@@ -244,7 +244,7 @@ export function Avatar({ member, email, size = 28, title }: { member?: Member | 
   const [broken, setBroken] = useState(false);
   return (
     <span className="avatar" style={{ ['--s' as string]: `${size}px` }} title={title ?? name}>
-      {member?.photoURL && !broken ? <img src={member.photoURL} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)} /> : initials(member?.name || (email ?? '?').split('@')[0])}
+      {(member?.sitePhoto || member?.photoURL) && !broken ? <img src={member.sitePhoto || member.photoURL} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)} /> : initials(member?.name || (email ?? '?').split('@')[0])}
     </span>
   );
 }

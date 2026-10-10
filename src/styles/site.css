@@ -100,9 +100,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.logo-mark {
+.site .logo-mark {
   flex: none;
-  display: block;
 }
 .site-nav {
   display: flex;
@@ -741,16 +740,6 @@
   }
 }
 .pictogram {
-    width: 48px;
-    height: 48px;
-    grid-row: span 2;
-  }
-  .do-card h3 {
-    margin-top: 0;
-    font-size: 22px;
-  }
-}
-.pictogram {
   display: block;
 }
 .pg-fill {
@@ -1172,6 +1161,89 @@
 }
 
 /* team */
+.team-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: clamp(32px, 5vw, 64px);
+  align-items: center;
+  padding-top: 44px;
+}
+@media (max-width: 860px) {
+  .team-top {
+    grid-template-columns: 1fr;
+  }
+}
+.team-photo .note-us {
+  left: 18px;
+}
+.team-note {
+  position: relative;
+  padding: 30px 28px 26px 58px;
+  background-color: #fff;
+  background-image: linear-gradient(90deg, transparent 40px, rgba(31, 61, 255, 0.35) 40px, rgba(31, 61, 255, 0.35) 41.5px, transparent 41.5px),
+    repeating-linear-gradient(to bottom, transparent 0, transparent 31px, #dfe3ff 31px, #dfe3ff 32px);
+  background-position: 0 0, 0 22px;
+  color: #0a0a0a;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 18px 40px -16px rgba(0, 0, 0, 0.3);
+  transform: rotate(1.5deg);
+  line-height: 32px;
+}
+.team-note-title {
+  font-size: 36px;
+  line-height: 32px;
+  color: var(--brand);
+  margin-bottom: 8px;
+}
+.roll {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.roll li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 15px;
+}
+.roll strong {
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.roll span {
+  flex: none;
+  font-size: 13.5px;
+  color: #55575d;
+}
+.roll-more {
+  color: #55575d;
+}
+.team-note-copy {
+  font-size: 15.5px;
+  color: #33353a;
+}
+.team-note-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 32px;
+  color: var(--brand);
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+}
+.team-note-cta:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.team-grid {
+  margin-top: 72px !important;
+}
+
 .team-grid {
   list-style: none;
   margin: 0;
@@ -1410,4 +1482,29 @@
   font-size: 17.5px;
   line-height: 1.75;
   max-width: 66ch;
+}
+@media (max-width: 560px) {
+  .team-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 22px 14px;
+    margin-top: 48px !important;
+  }
+  .team-card {
+    padding: 6px 6px 12px;
+  }
+  .site-avatar {
+    font-size: 40px;
+  }
+  .team-info {
+    padding: 8px 4px 0;
+  }
+  .team-info strong {
+    font-size: 18px;
+  }
+  .team-role {
+    font-size: 12.5px;
+  }
+  .team-bio {
+    display: none;
+  }
 }

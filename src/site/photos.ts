@@ -19,7 +19,7 @@ const p = (name: string, w: number, h: number, caption: string, alt: string): Cl
 });
 
 export const PHOTOS = {
-  team: p('christmas-team', 1400, 933, 'the crew', 'Club members together behind the Christmas booth'),
+  team: p('christmas-team', 1600, 896, 'the whole crew', 'Club members together behind the Christmas booth'),
   halloween: p('halloween-booth', 1400, 1049, 'Halloween booth', 'The decorated Business Club table at the Halloween booth'),
   crowd: p('christmas-crowd', 1400, 933, 'Christmas rush', 'Students crowding around the Christmas booth to buy'),
   sales: p('christmas-sales', 1400, 933, 'Christmas booth', 'Members serving students at the Christmas booth'),
@@ -29,5 +29,5 @@ export const PHOTOS = {
   intl: p('international-day', 1400, 933, 'International Day', 'Younger students doing crafts at the International Day stall'),
 };
 
-export const HERO_PHOTOS = [PHOTOS.team, PHOTOS.halloween, PHOTOS.crowd];
-export const GALLERY = [PHOTOS.halloween, PHOTOS.queue, PHOTOS.crowd, PHOTOS.intl, PHOTOS.members, PHOTOS.fair, PHOTOS.sales];
+export const HERO_PHOTOS = [PHOTOS.halloween, PHOTOS.sales, PHOTOS.crowd];
+export const GALLERY = [PHOTOS.halloween, PHOTOS.queue, PHOTOS.crowd, PHOTOS.intl, PHOTOS.fair, PHOTOS.sales];

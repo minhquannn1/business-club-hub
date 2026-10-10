@@ -718,3 +718,11 @@ p {
   place-items: center;
   padding: 24px;
 }
+
+.logo-mark {
+  flex: none;
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+  user-select: none;
+}

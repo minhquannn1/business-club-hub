@@ -160,7 +160,7 @@ export async function deleteMeeting(m: Meeting) {
 async function syncPublicMember(m: Member, order: number) {
   const ref = doc(db, 'publicTeam', m.id.replace(/[^a-z0-9]/g, '_'));
   if (m.showOnSite && m.name) {
-    const pm: Omit<PublicMember, 'id'> = { name: m.name, title: m.title ?? '', team: m.team ?? '', photoURL: m.photoURL ?? '', bio: m.bio ?? '', order };
+    const pm: Omit<PublicMember, 'id'> = { name: m.name, title: m.title ?? '', team: m.team ?? '', photoURL: m.sitePhoto || m.photoURL || '', bio: m.bio ?? '', order };
     await setDoc(ref, pm);
   } else await deleteDoc(ref).catch(() => {});
 }
@@ -181,7 +181,7 @@ export async function updateMember(prev: Member, patch: Partial<Member>, self = 
   delete p.id;
   await updateDoc(doc(db, 'members', prev.id), p);
   const next = { ...prev, ...patch };
-  if (!self || 'showOnSite' in patch || 'name' in patch || 'bio' in patch)
+  if (!self || 'showOnSite' in patch || 'name' in patch || 'bio' in patch || 'sitePhoto' in patch)
     await syncPublicMember(next, next.role === 'exec' ? 0 : 1).catch(() => {});
   log(patch.role && patch.role !== prev.role ? (patch.role === 'exec' ? 'promoted' : 'changed role of') : 'updated', 'member', prev.id, next.name || prev.id);
 }
@@ -372,6 +372,37 @@ export async function compressImage(file: File, maxSide = 1400): Promise<string>
       out = canvas.toDataURL('image/jpeg', q);
     }
     if (out.length > 900_000) throw new Error('This image is too large even after shrinking. Try a smaller photo.');
+    return out;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/** Centre-crops an image to a square and returns a small jpeg data URL (about 30 to 60 KB). */
+export async function compressSquare(file: File, side = 480): Promise<string> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error('That file is not an image we can read.'));
+      i.src = url;
+    });
+    const s = Math.min(img.width, img.height);
+    const size = Math.min(side, s);
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, size, size);
+    ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+    let q = 0.82;
+    let out = canvas.toDataURL('image/jpeg', q);
+    while (out.length > 90_000 && q > 0.4) {
+      q -= 0.08;
+      out = canvas.toDataURL('image/jpeg', q);
+    }
     return out;
   } finally {
     URL.revokeObjectURL(url);
