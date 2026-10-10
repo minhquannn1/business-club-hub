@@ -2,7 +2,10 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useStore } from '../lib/store';
-import { HeroChart, LogoMark } from '../components/Art';
+import { LogoMark } from '../components/Art';
+import { Polaroid } from '../site/Polaroid';
+import { PHOTOS } from '../site/photos';
+import '@fontsource/caveat/latin-600.css';
 import '../styles/app.css';
 import '../styles/site.css';
 
@@ -30,8 +33,9 @@ export function Login() {
           <span>{site.shortName || site.clubName}</span>
         </div>
         <p className="display login-quote">{site.tagline}</p>
-        <div className="login-chart">
-          <HeroChart seed={11} />
+        <div className="login-photos">
+          <Polaroid photo={PHOTOS.halloween} small tilt={5} className="lp-back" />
+          <Polaroid photo={PHOTOS.team} small tilt={-3} eager className="lp-front" />
         </div>
       </aside>
       <main className="login-main">

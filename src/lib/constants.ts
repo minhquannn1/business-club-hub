@@ -37,9 +37,9 @@ export const DEFAULT_SITE: SiteContent = {
   school: '',
   tagline: 'Learn business by running one.',
   about:
-    'We are a student-run club for anyone curious about how businesses work. We plan events, run small ventures and invite people from industry to talk to students.',
-  mission: 'Learn business by doing it: pitch an idea, find the money, ship it, then count what worked.',
-  joinText: 'Membership is open to every secondary student. Come to a meeting or send us a message.',
+    'We are students who like the business side of things. We run booths at school events, plan our own projects and bring in people who run real businesses to talk to us.',
+  mission: 'Learn by doing: come up with an idea, sell it at a booth, count the money, then do it better next time.',
+  joinText: 'Any secondary student can join. Come to a meeting or send us a message and we will add you in.',
   joinLink: '',
   contactEmail: '',
   instagram: '',
@@ -48,10 +48,10 @@ export const DEFAULT_SITE: SiteContent = {
   founded: '',
   partnerText: 'Teachers, alumni and local businesses: sponsor an event, give a talk, or bring us a real problem to work on.',
   activities: [
-    { icon: 'pitch', title: 'Pitch nights', text: 'Three minutes to sell an idea, then questions from students and teachers.' },
-    { icon: 'workshop', title: 'Workshops', text: 'Short hands-on sessions on budgeting, marketing and reading the numbers.' },
-    { icon: 'talks', title: 'Guest talks', text: 'People who run real businesses come in and answer anything you ask.' },
-    { icon: 'ventures', title: 'Student ventures', text: 'Small businesses run by members, from bake sales to merch drops.' },
+    { icon: 'ventures', title: 'School booths', text: 'Halloween, Christmas, fairs. We pick what to sell, set the prices and run the stall ourselves.' },
+    { icon: 'pitch', title: 'Pitch days', text: 'Got an idea? Three minutes to sell it to the club, then we vote on what to build.' },
+    { icon: 'workshop', title: 'Workshops', text: 'Short hands-on sessions on budgeting, marketing and making a simple sales sheet.' },
+    { icon: 'talks', title: 'Guest talks', text: 'People who run real businesses come in and answer anything we ask.' },
   ],
 };
 

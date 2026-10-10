@@ -1198,9 +1198,22 @@ button.row-link {
   max-width: 12ch;
   color: #fff;
 }
-.login-chart {
-  height: 300px;
-  margin: 0 -44px;
+.login-photos {
+  position: relative;
+  height: 340px;
+  margin-bottom: -40px;
+}
+.login-photos .polaroid {
+  position: absolute;
+  width: min(300px, 62%);
+}
+.lp-back {
+  right: 0;
+  top: 0;
+}
+.lp-front {
+  left: 0;
+  top: 70px;
 }
 .login-main {
   display: grid;
@@ -1249,9 +1262,8 @@ button.row-link {
     font-size: 34px;
     margin: 18px 0;
   }
-  .login-chart {
-    height: 140px;
-    margin: 0 -20px;
+  .login-photos {
+    display: none;
   }
 }
 .notice {

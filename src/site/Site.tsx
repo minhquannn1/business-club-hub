@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays, Instagram, Mail, MapPin, Pause, Play, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, CalendarDays, Instagram, Mail, MapPin, Users } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { usePublicData } from './usePublic';
 import { fmtDate, fmtRange, initials, todayISO } from '../lib/format';
 import { DEFAULT_SITE } from '../lib/constants';
 import type { PublicProject } from '../lib/types';
-import { EmptyArt, HeroChart, LogoMark, Pictograms, toneFor } from '../components/Art';
+import { EmptyArt, LogoMark, Pictograms, toneFor } from '../components/Art';
+import { Polaroid } from './Polaroid';
+import { CurlyArrow, Sparkle, Squiggle, Star } from './Doodles';
+import { GALLERY, HERO_PHOTOS, PHOTOS } from './photos';
+import '@fontsource/caveat/latin-600.css';
 import '../styles/site.css';
 
 function useTitle(t: string) {
@@ -30,6 +34,7 @@ function SiteHeader({ onDark = false }: { onDark?: boolean }) {
         <nav className="site-nav" aria-label="Main">
           <a href="/#do">What we do</a>
           <a href="/#events">Events</a>
+          <a href="/#done">Photos</a>
           <a href="/#team">Team</a>
           <a href="/#join">Join</a>
           <Link to="/app" className="btn btn-sm nav-cta">
@@ -71,34 +76,6 @@ function isUpcoming(p: PublicProject, today: string) {
   if (p.stage === 'done') return false;
   const end = p.endDate || p.startDate;
   return !end || end >= today;
-}
-
-function Ticker({ items }: { items: string[] }) {
-  const [paused, setPaused] = useState(false);
-  if (!items.length) return null;
-  const row = (hidden: boolean) => (
-    <ul className="ticker-row" aria-hidden={hidden || undefined}>
-      {items.map((t, i) => (
-        <li key={i}>
-          <span className="ticker-arrow" aria-hidden="true">
-            ▲
-          </span>
-          {t}
-        </li>
-      ))}
-    </ul>
-  );
-  return (
-    <section className={`ticker ${paused ? 'paused' : ''}`} aria-label="Club news">
-      <div className="ticker-track">
-        {row(false)}
-        {row(true)}
-      </div>
-      <button className="ticker-toggle" onClick={() => setPaused((p) => !p)} aria-label={paused ? 'Play news ticker' : 'Pause news ticker'}>
-        {paused ? <Play size={14} /> : <Pause size={14} />}
-      </button>
-    </section>
-  );
 }
 
 function TicketCard({ p }: { p: PublicProject }) {
@@ -146,6 +123,21 @@ function Avatar({ name, photo, size = 64 }: { name: string; photo?: string; size
   );
 }
 
+function MarkedTitle({ text }: { text: string }) {
+  const words = text.trim().split(/\s+/);
+  if (words.length < 3) return <>{text}</>;
+  const n = words.length > 4 ? 2 : 1;
+  return (
+    <>
+      {words.slice(0, -n).join(' ')}{' '}
+      <span className="marked">
+        {words.slice(-n).join(' ')}
+        <Squiggle />
+      </span>
+    </>
+  );
+}
+
 export function SiteHome() {
   const { site } = useStore();
   const { projects, team, loaded } = usePublicData();
@@ -154,64 +146,54 @@ export function SiteHome() {
   const upcoming = useMemo(() => projects.filter((p) => isUpcoming(p, today)).sort((a, b) => (a.startDate || '9999').localeCompare(b.startDate || '9999')), [projects, today]);
   const past = useMemo(() => projects.filter((p) => !isUpcoming(p, today)).sort((a, b) => (b.endDate || b.startDate || '').localeCompare(a.endDate || a.startDate || '')), [projects, today]);
   const next = upcoming.find((p) => p.startDate) ?? upcoming[0];
-  const reached = projects.reduce((s, p) => s + (p.attendance || 0), 0);
   const activities = site.activities?.length ? site.activities : DEFAULT_SITE.activities;
-
-  const ticker = [
-    ...upcoming.slice(0, 4).map((p) => `${p.title}${p.startDate ? `, ${fmtDate(p.startDate, 'd MMM')}` : ''}`),
-    past.length ? `${past.length} ${past.length === 1 ? 'project' : 'projects'} wrapped` : '',
-    reached ? `${reached.toLocaleString('en-US')} students came along` : '',
-    team.length ? `${team.length} people on the team` : '',
-    ...activities.map((a) => a.title),
-  ].filter(Boolean);
+  const kicker = site.school ? `A student-run club at ${site.school}` : 'A student-run high school club';
+  const insta = site.instagram?.replace(/^@/, '');
 
   return (
     <div className="site">
-      <section className="hero dark-band" aria-labelledby="hero-title">
-        <SiteHeader onDark />
-        <div className="hero-art" aria-hidden="true">
-          <HeroChart flag={next ? { label: next.title, sub: next.startDate ? `Next up, ${fmtDate(next.startDate, 'd MMM')}` : 'Next up' } : undefined} />
-        </div>
-        <div className="site-wrap hero-copy">
-          <p className="hero-kicker">
-            {[site.school, site.founded ? `Founded ${site.founded}` : ''].filter(Boolean).join(', ') || site.clubName}
-          </p>
-          <h1 id="hero-title" className="display hero-title">
-            {site.tagline}
-          </h1>
-          <p className="hero-lead">{site.about.split(/(?<=\.)\s/)[0]}</p>
-          <div className="hero-actions">
-            <a href="#join" className="btn btn-light">
-              Join the club <ArrowRight size={17} className="btn-arrow" aria-hidden="true" />
-            </a>
-            <a href="#events" className="btn btn-on-dark">
-              Upcoming events
-            </a>
+      <SiteHeader />
+      <section className="hero" aria-labelledby="hero-title">
+        <div className="site-wrap hero-grid">
+          <div className="hero-copy">
+            <p className="hero-kicker">
+              <Sparkle />
+              {kicker}
+            </p>
+            <h1 id="hero-title" className="display hero-title">
+              <MarkedTitle text={site.tagline} />
+            </h1>
+            <p className="hero-lead">{site.about.split(/(?<=\.)\s/)[0]}</p>
+            <div className="hero-actions">
+              <a href="#join" className="btn btn-blue">
+                Join the club <ArrowRight size={17} className="btn-arrow" aria-hidden="true" />
+              </a>
+              <a href="#events" className="btn btn-outline">
+                See what's on
+              </a>
+            </div>
+          </div>
+
+          <div className="collage">
+            <Polaroid photo={HERO_PHOTOS[0]} tilt={-4} eager className="c-main">
+              <span className="hand note-us" aria-hidden="true">
+                that's us!
+                <CurlyArrow />
+              </span>
+            </Polaroid>
+            <Polaroid photo={HERO_PHOTOS[1]} tilt={5} small className="c-side" />
+            <Polaroid photo={HERO_PHOTOS[2]} tilt={-2} small className="c-low" />
+            <Star className="c-star" />
+            {next && (
+              <Link to={`/p/${next.id}`} className="sticky-note">
+                <span className="hand">next up!</span>
+                <strong>{next.title}</strong>
+                {next.startDate && <span>{fmtDate(next.startDate, 'EEE d MMM')}</span>}
+              </Link>
+            )}
           </div>
         </div>
-        <div className="site-wrap">
-          <dl className="hero-stats">
-            <div>
-              <dt>Projects run</dt>
-              <dd>{projects.length}</dd>
-            </div>
-            <div>
-              <dt>Students reached</dt>
-              <dd>{reached.toLocaleString('en-US')}</dd>
-            </div>
-            <div>
-              <dt>Team members</dt>
-              <dd>{team.length}</dd>
-            </div>
-            <div>
-              <dt>Season</dt>
-              <dd>{site.year}</dd>
-            </div>
-          </dl>
-        </div>
       </section>
-
-      <Ticker items={ticker} />
 
       <main id="main">
         <section id="do" className="site-section">
@@ -224,7 +206,7 @@ export function SiteHome() {
               {activities.map((a, i) => {
                 const Icon = Pictograms[a.icon] ?? Pictograms.pitch;
                 return (
-                  <li key={i} className="do-card">
+                  <li key={i} className="do-card" style={{ ['--r' as string]: `${[-1.2, 0.8, -0.6, 1.1][i % 4]}deg` }}>
                     <Icon size={56} />
                     <h3>{a.title}</h3>
                     <p>{a.text}</p>
@@ -232,6 +214,80 @@ export function SiteHome() {
                 );
               })}
             </ul>
+          </div>
+        </section>
+
+        <section id="events" className="site-section events">
+          <div className="site-wrap">
+            <div className="section-head">
+              <h2 className="section-title display">
+                Coming up
+                <Sparkle className="title-doodle" />
+              </h2>
+            </div>
+            {!loaded ? (
+              <div className="ticket-skeleton" aria-label="Loading events" />
+            ) : upcoming.length === 0 ? (
+              <div className="events-empty">
+                <EmptyArt.ticket />
+                <div>
+                  <strong>The next event is being planned</strong>
+                  <p className="muted">
+                    {insta ? (
+                      <>
+                        Follow{' '}
+                        <a href={`https://instagram.com/${insta}`} target="_blank" rel="noreferrer">
+                          @{insta}
+                        </a>{' '}
+                        to hear first.
+                      </>
+                    ) : (
+                      'Check back soon, or ask anyone on the team.'
+                    )}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="tickets">
+                {upcoming.map((p) => (
+                  <TicketCard key={p.id} p={p} />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section id="done" className="site-section done">
+          <div className="site-wrap">
+            <div className="section-head">
+              <h2 className="section-title display">Things we've done</h2>
+              <p className="section-sub">Booths, fairs and school days. We plan them, stock them, sell at them and count the money after.</p>
+            </div>
+            <div className="scrapbook">
+              {GALLERY.map((ph, i) => (
+                <Polaroid key={ph.src} photo={ph} small tilt={[-2, 1.6, -1, 2.2, -1.8, 1.2, -0.8][i % 7]} tape={i % 2 === 0} />
+              ))}
+            </div>
+
+            {past.length > 0 && (
+              <>
+                <h3 className="subsection-title">Project write-ups</h3>
+                <div className="past-grid">
+                  {past.map((p) => (
+                    <Link key={p.id} to={`/p/${p.id}`} className="past-card" style={{ ['--c' as string]: p.color }}>
+                      <span className="past-date">{fmtRange(p.startDate, p.endDate)}</span>
+                      <strong>{p.title}</strong>
+                      <span className="past-blurb">{p.blurb}</span>
+                      {!!p.attendance && (
+                        <span className="past-att">
+                          <Users size={14} aria-hidden="true" /> {p.attendance.toLocaleString('en-US')} came
+                        </span>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </section>
 
@@ -257,11 +313,11 @@ export function SiteHome() {
               </article>
               <article className="path-card path-partners">
                 <svg className="path-art" viewBox="0 0 120 80" aria-hidden="true">
-                  <rect x="8" y="22" width="46" height="46" rx="8" className="pa-box" />
-                  <rect x="66" y="22" width="46" height="46" rx="8" className="pa-box pa-soft" />
+                  <rect x="8" y="22" width="46" height="46" rx="10" className="pa-box" />
+                  <rect x="66" y="22" width="46" height="46" rx="10" className="pa-box pa-soft" />
                   <path d="M40 45h40M70 37l10 8-10 8" className="pa-arrow" />
                 </svg>
-                <h3 className="display">For partners and sponsors</h3>
+                <h3 className="display">Teachers &amp; businesses</h3>
                 <p>{site.partnerText}</p>
                 {site.contactEmail ? (
                   <a className="path-link" href={`mailto:${site.contactEmail}?subject=${encodeURIComponent('Working with ' + site.clubName)}`}>
@@ -274,63 +330,6 @@ export function SiteHome() {
                 )}
               </article>
             </div>
-          </div>
-        </section>
-
-        <section id="events" className="site-section events">
-          <div className="site-wrap">
-            <div className="section-head">
-              <h2 className="section-title display">Coming up</h2>
-            </div>
-            {!loaded ? (
-              <div className="ticket-skeleton" aria-label="Loading events" />
-            ) : upcoming.length === 0 ? (
-              <div className="events-empty">
-                <EmptyArt.ticket />
-                <div>
-                  <strong>The next event is being planned</strong>
-                  <p className="muted">
-                    {site.instagram ? (
-                      <>
-                        Follow{' '}
-                        <a href={`https://instagram.com/${site.instagram.replace(/^@/, '')}`} target="_blank" rel="noreferrer">
-                          @{site.instagram.replace(/^@/, '')}
-                        </a>{' '}
-                        to hear first.
-                      </>
-                    ) : (
-                      'Check back soon, or ask anyone on the team.'
-                    )}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="tickets">
-                {upcoming.map((p) => (
-                  <TicketCard key={p.id} p={p} />
-                ))}
-              </div>
-            )}
-
-            {past.length > 0 && (
-              <>
-                <h3 className="subsection-title">Already done</h3>
-                <div className="past-grid">
-                  {past.map((p) => (
-                    <Link key={p.id} to={`/p/${p.id}`} className="past-card" style={{ ['--c' as string]: p.color }}>
-                      <span className="past-date">{fmtRange(p.startDate, p.endDate)}</span>
-                      <strong>{p.title}</strong>
-                      <span className="past-blurb">{p.blurb}</span>
-                      {!!p.attendance && (
-                        <span className="past-att">
-                          <Users size={14} aria-hidden="true" /> {p.attendance.toLocaleString('en-US')} came
-                        </span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              </>
-            )}
           </div>
         </section>
 
@@ -348,11 +347,12 @@ export function SiteHome() {
           <section id="team" className="site-section">
             <div className="site-wrap">
               <div className="section-head">
-                <h2 className="section-title display">The team</h2>
+                <h2 className="section-title display">Meet the team</h2>
+                <p className="section-sub">The students who run the club this year. Say hi if you see us around.</p>
               </div>
               <ul className="team-grid">
-                {team.map((m) => (
-                  <li key={m.id} className="team-card">
+                {team.map((m, i) => (
+                  <li key={m.id} className="team-card" style={{ ['--r' as string]: `${[-1.5, 1, -0.5, 1.6][i % 4]}deg` }}>
                     <Avatar name={m.name} photo={m.photoURL} size={320} />
                     <div className="team-info">
                       <strong>{m.name}</strong>
@@ -371,6 +371,10 @@ export function SiteHome() {
             <div>
               <h2 className="display join-title">Have an idea? Bring it to the club.</h2>
               <p className="join-copy">{site.joinText}</p>
+              <span className="hand join-note" aria-hidden="true">
+                come say hi
+                <CurlyArrow />
+              </span>
               <div className="join-actions">
                 {site.joinLink && (
                   <a className="btn btn-light" href={site.joinLink} target="_blank" rel="noreferrer">
@@ -382,30 +386,21 @@ export function SiteHome() {
                     <Mail aria-hidden="true" /> Email us
                   </a>
                 )}
-                {site.instagram && (
-                  <a className="btn btn-on-dark" href={`https://instagram.com/${site.instagram.replace(/^@/, '')}`} target="_blank" rel="noreferrer">
+                {insta && (
+                  <a className="btn btn-on-dark" href={`https://instagram.com/${insta}`} target="_blank" rel="noreferrer">
                     <Instagram aria-hidden="true" /> Instagram
                   </a>
                 )}
-                {!site.joinLink && !site.contactEmail && !site.instagram && (
+                {!site.joinLink && !site.contactEmail && !insta && (
                   <Link className="btn btn-light" to="/app">
                     Already a member? Sign in
                   </Link>
                 )}
               </div>
             </div>
-            <svg className="join-art" viewBox="0 0 320 240" aria-hidden="true">
-              <path d="M10 210 L80 160 L130 182 L200 96 L250 120 L306 34" className="ja-line" pathLength={1} />
-              <path d="M276 30 L306 34 L300 64" className="ja-head" />
-              {[
-                [80, 160],
-                [130, 182],
-                [200, 96],
-                [250, 120],
-              ].map(([x, y]) => (
-                <circle key={x} cx={x} cy={y} r="7" className="ja-dot" />
-              ))}
-            </svg>
+            <div className="join-photo">
+              <Polaroid photo={PHOTOS.members} small tilt={4} />
+            </div>
           </div>
         </section>
       </main>
