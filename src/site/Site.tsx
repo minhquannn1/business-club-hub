@@ -8,8 +8,9 @@ import { DEFAULT_SITE } from '../lib/constants';
 import type { PublicProject } from '../lib/types';
 import { EmptyArt, LogoMark, Pictograms, toneFor } from '../components/Art';
 import { Polaroid } from './Polaroid';
-import { CurlyArrow, Sparkle, Squiggle, Star } from './Doodles';
-import { GALLERY, HERO_PHOTOS, PHOTOS } from './photos';
+import { CurlyArrow, Sparkle, Star } from './Doodles';
+import { BoothGame } from './BoothGame';
+import { GALLERY, PHOTOS } from './photos';
 import '@fontsource/caveat/latin-600.css';
 import '../styles/site.css';
 
@@ -123,21 +124,6 @@ function Avatar({ name, photo, size = 64 }: { name: string; photo?: string; size
   );
 }
 
-function MarkedTitle({ text }: { text: string }) {
-  const words = text.trim().split(/\s+/);
-  if (words.length < 3) return <>{text}</>;
-  const n = words.length > 4 ? 2 : 1;
-  return (
-    <>
-      {words.slice(0, -n).join(' ')}{' '}
-      <span className="marked">
-        {words.slice(-n).join(' ')}
-        <Squiggle />
-      </span>
-    </>
-  );
-}
-
 export function SiteHome() {
   const { site } = useStore();
   const { projects, team, loaded } = usePublicData();
@@ -162,41 +148,30 @@ export function SiteHome() {
     <div className="site">
       <SiteHeader />
       <section className="hero" aria-labelledby="hero-title">
-        <div className="site-wrap hero-grid">
-          <div className="hero-copy">
-            <p className="hero-kicker">
-              <Sparkle />
-              {kicker}
-            </p>
-            <h1 id="hero-title" className="display hero-title">
-              <MarkedTitle text={site.tagline} />
+        <div className="site-wrap">
+          <div className="hero-top">
+            <h1 id="hero-title" className="hero-club">
+              {site.clubName}
+              <span>{kicker}</span>
             </h1>
-            <p className="hero-lead">{site.about.split(/(?<=\.)\s/)[0]}</p>
-            <div className="hero-actions">
-              <a href="#join" className="btn btn-blue">
-                Join the club <ArrowRight size={17} className="btn-arrow" aria-hidden="true" />
-              </a>
-              <a href="#events" className="btn btn-outline">
-                See what's on
-              </a>
-            </div>
+            <p className="hand hero-prompt" aria-hidden="true">
+              you run the candy stall. pick a price
+              <CurlyArrow />
+            </p>
           </div>
-
-          <div className="collage">
-            <Polaroid photo={HERO_PHOTOS[0]} tilt={-4} eager className="c-main">
-              <span className="hand note-us" aria-hidden="true">
-                we made this!
-                <CurlyArrow />
-              </span>
-            </Polaroid>
-            <Polaroid photo={HERO_PHOTOS[1]} tilt={5} small className="c-side" />
-            <Polaroid photo={HERO_PHOTOS[2]} tilt={-2} small className="c-low" />
-            <Star className="c-star" />
+          <BoothGame />
+          <div className="hero-foot">
+            <a href="#join" className="btn btn-blue">
+              Join the club <ArrowRight size={17} className="btn-arrow" aria-hidden="true" />
+            </a>
+            <a href="#events" className="btn btn-outline">
+              See what's on
+            </a>
             {next && (
-              <Link to={`/p/${next.id}`} className="sticky-note">
-                <span className="hand">next up!</span>
-                <strong>{next.title}</strong>
-                {next.startDate && <span>{fmtDate(next.startDate, 'EEE d MMM')}</span>}
+              <Link to={`/p/${next.id}`} className="hero-next">
+                <Star />
+                Next up: <strong>{next.title}</strong>
+                {next.startDate && <span>({fmtDate(next.startDate, 'EEE d MMM')})</span>}
               </Link>
             )}
           </div>
