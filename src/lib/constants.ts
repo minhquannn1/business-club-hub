@@ -39,7 +39,7 @@ export const DEFAULT_SITE: SiteContent = {
   about:
     'We are students who like the business side of things. We run booths at school events, plan our own projects and bring in people who run real businesses to talk to us.',
   mission: 'Learn by doing: come up with an idea, sell it at a booth, count the money, then do it better next time.',
-  joinText: 'Any secondary student can join. Come to a meeting or send us a message and we will add you in.',
+  joinText: '',
   joinLink: '',
   contactEmail: '',
   instagram: '',

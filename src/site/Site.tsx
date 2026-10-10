@@ -120,7 +120,7 @@ function Avatar({ name, photo, size = 64 }: { name: string; photo?: string; size
   const [broken, setBroken] = useState(false);
   return (
     <span className="site-avatar" style={{ width: size, height: size, ['--t' as string]: toneFor(name) }}>
-      {photo && !broken ? <img src={photo} alt="" width={size} height={size} referrerPolicy="no-referrer" onError={() => setBroken(true)} /> : <span>{initials(name)}</span>}
+      {photo && !broken ? <img src={photo.replace(/=s\d+-c$/, '=s480-c')} alt="" width={size} height={size} referrerPolicy="no-referrer" onError={() => setBroken(true)} /> : <span>{initials(name)}</span>}
     </span>
   );
 }
@@ -261,7 +261,7 @@ export function SiteHome() {
                   <path d="M96 10l6 6 12-12" className="pa-tick" />
                 </svg>
                 <h3 className="display">For students</h3>
-                <p>{site.joinText}</p>
+                {site.joinText && <p>{site.joinText}</p>}
                 <a className="path-link" href="#join">
                   How to join <ArrowUpRight size={16} aria-hidden="true" />
                 </a>
@@ -304,50 +304,34 @@ export function SiteHome() {
               <h2 className="section-title display">Meet the team</h2>
               <p className="section-sub">The students who run the club this year. Say hi if you see us around school.</p>
             </div>
-            <div className="team-top">
-              <Polaroid photo={PHOTOS.team} tilt={-1.5} className="team-photo">
-                <span className="hand note-us" aria-hidden="true">
-                  that's us!
-                  <CurlyArrow />
-                </span>
-              </Polaroid>
-              <div className="team-side">
-              <Polaroid photo={PHOTOS.meeting} small tilt={3} tape={false} className="team-meeting" />
-              <div className="team-note">
-                <span className="tape" aria-hidden="true" />
-                <p className="hand team-note-title">roll call</p>
-                {team.length > 0 ? (
-                  <ul className="roll">
-                    {team.slice(0, 8).map((m) => (
-                      <li key={m.id}>
-                        <strong>{m.name}</strong>
-                        {m.title && <span>{m.title}</span>}
-                      </li>
-                    ))}
-                    {team.length > 8 && <li className="roll-more">and {team.length - 8} more below</li>}
-                  </ul>
-                ) : (
-                  <p className="team-note-copy">Proper profiles are on the way. Until then, look for us behind the booth table.</p>
-                )}
-                <a href="#join" className="team-note-cta">
-                  Want to join us? <ArrowRight size={16} aria-hidden="true" />
-                </a>
-              </div>
-              </div>
-            </div>
-            {team.length > 0 && (
-              <ul className="team-grid">
+            {team.length > 0 ? (
+              <ul className="faces">
                 {team.map((m, i) => (
-                  <li key={m.id} className="team-card" style={{ ['--r' as string]: `${[-1.5, 1, -0.5, 1.6][i % 4]}deg` }}>
-                    <Avatar name={m.name} photo={m.photoURL} size={320} />
-                    <div className="team-info">
-                      <strong>{m.name}</strong>
-                      <span className="team-role">{[m.title, m.team].filter(Boolean).join(', ')}</span>
-                      {m.bio && <p className="team-bio">{m.bio}</p>}
-                    </div>
+                  <li key={m.id} className="face" style={{ ['--r' as string]: `${[-3, 2, -1.5, 3, -2, 1][i % 6]}deg` }}>
+                    <Avatar name={m.name} photo={m.photoURL} size={400} />
+                    <strong className="face-name">{m.name}</strong>
+                    {(m.title || m.team) && <span className="face-role">{[m.title, m.team].filter(Boolean).join(', ')}</span>}
+                    {m.bio && <p className="face-bio">{m.bio}</p>}
                   </li>
                 ))}
               </ul>
+            ) : (
+              <div className="team-top">
+                <Polaroid photo={PHOTOS.team} tilt={-1.5} className="team-photo">
+                  <span className="hand note-us" aria-hidden="true">
+                    that's us!
+                    <CurlyArrow />
+                  </span>
+                </Polaroid>
+                <div className="team-note">
+                  <span className="tape" aria-hidden="true" />
+                  <p className="hand team-note-title">faces coming soon</p>
+                  <p className="team-note-copy">Proper profiles are on the way. Until then, look for us behind the booth table.</p>
+                  <a href="#join" className="team-note-cta">
+                    Want to join us? <ArrowRight size={16} aria-hidden="true" />
+                  </a>
+                </div>
+              </div>
             )}
           </div>
         </section>
@@ -358,7 +342,6 @@ export function SiteHome() {
               <h2 id="play-title" className="section-title display">
                 Run the stall
               </h2>
-              <p className="section-sub">One bag of candy costs us 8k. Pick a price, watch the queue, and see what is left after paying for the candy.</p>
             </div>
             <BoothGame />
           </div>
@@ -368,7 +351,7 @@ export function SiteHome() {
           <div className="site-wrap join-grid">
             <div>
               <h2 className="display join-title">Have an idea? Bring it to the club.</h2>
-              <p className="join-copy">{site.joinText}</p>
+              {site.joinText && <p className="join-copy">{site.joinText}</p>}
               <span className="hand join-note" aria-hidden="true">
                 come say hi
                 <CurlyArrow />
@@ -395,9 +378,6 @@ export function SiteHome() {
                   </Link>
                 )}
               </div>
-            </div>
-            <div className="join-photo">
-              <Polaroid photo={PHOTOS.members} small tilt={4} />
             </div>
           </div>
         </section>
