@@ -167,7 +167,6 @@ export function SiteHome() {
           <div className="site-wrap">
             <div className="section-head">
               <h2 className="section-title display">What we do</h2>
-              <p className="section-sub">{site.mission}</p>
             </div>
             <ul className="do-grid">
               {activities.map((a, i) => {
@@ -228,7 +227,6 @@ export function SiteHome() {
           <div className="site-wrap">
             <div className="section-head">
               <h2 className="section-title display">Things we've done</h2>
-              <p className="section-sub">Booths, fairs and school days. We plan them, stock them, sell at them and count the money after.</p>
             </div>
             <div className="scrapbook">
               {GALLERY.map((ph, i) => (
@@ -273,7 +271,7 @@ export function SiteHome() {
                   <path d="M96 10l6 6 12-12" className="pa-tick" />
                 </svg>
                 <h3 className="display">For students</h3>
-                {site.joinText && <p>{site.joinText}</p>}
+                <p>{site.joinText || "Help run the next booth, pitch your own idea, or just come to a meeting and see what we're up to."}</p>
                 <a className="path-link" href="#join">
                   How to join <ArrowUpRight size={16} aria-hidden="true" />
                 </a>
