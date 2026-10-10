@@ -534,7 +534,8 @@ export interface PlannedProject {
 export interface ImportBundle {
   events?: ImportedEvent[];
   projects?: PlannedProject[];
-  schoolDates?: Omit<SchoolDate, 'id'>[];
+  /** linkTo: title of a project in this bundle to attach the date to */
+  schoolDates?: (Omit<SchoolDate, 'id'> & { linkTo?: string })[];
   links?: Omit<QuickLink, 'id'>[];
   ledgers?: string[]; // empty ledger sheets to create
 }
@@ -542,6 +543,7 @@ export interface ImportBundle {
 export async function importBundle(b: ImportBundle, baseOrder: number) {
   let order = baseOrder;
   const report: string[] = [];
+  const made = new Map<string, string>();
   if (b.events?.length) {
     await importEvents(b.events, order);
     order += b.events.length;
@@ -567,6 +569,7 @@ export async function importBundle(b: ImportBundle, baseOrder: number) {
       links: pp.links ?? [],
       order: order++,
     });
+    made.set(pp.title, id);
     for (const t of pp.tasks ?? []) {
       await createTask({ title: t.title, notes: t.notes ?? '', projectId: id, assigneeEmail: t.mine ? actor : '', dueDate: t.dueDate ?? '', priority: 'med', status: 'todo' }, true);
     }
@@ -582,14 +585,13 @@ export async function importBundle(b: ImportBundle, baseOrder: number) {
         const cells: Record<string, string> = { ...r.cells, [cols[0].key]: line.item, [cols[4].key]: line.notes ?? '' };
         if (line.qty != null) cells[cols[1].key] = String(line.qty);
         if (line.unit != null) cells[cols[2].key] = String(line.unit);
-        if (line.qty == null && line.unit != null) cells[cols[3].key] = String(line.unit);
         batch.update(doc(db, 'sheets', sheetId, 'rows', r.id), { cells });
       });
       await batch.commit();
     }
     report.push(pp.title);
   }
-  for (const d of b.schoolDates ?? []) await saveSchoolDate(d);
+  for (const { linkTo, ...d } of b.schoolDates ?? []) await saveSchoolDate(linkTo && made.get(linkTo) ? { ...d, projectId: made.get(linkTo) } : d);
   if (b.schoolDates?.length) report.push(`${b.schoolDates.length} school dates`);
   for (const l of b.links ?? []) await saveLink(l);
   if (b.links?.length) report.push(`${b.links.length} links`);

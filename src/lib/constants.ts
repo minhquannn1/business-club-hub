@@ -36,7 +36,7 @@ export const roleRank = (title?: string) => {
   return i < 0 ? ROLES.length : i;
 };
 
-export const TEAMS = ['Leadership', 'Events', 'Marketing', 'Finance', 'Partnerships', 'Content'];
+export const TEAMS = ['Leadership', 'MAC (Marketing & Content)', 'Finance & Accounting', 'Logistics & Operations', 'Technical'];
 
 export const DEFAULT_SITE: SiteContent = {
   clubName: 'Business Club',
