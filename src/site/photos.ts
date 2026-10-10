@@ -32,6 +32,7 @@ export const PHOTOS = {
 /* VinUni National High School Entrepreneurship Competition 2026, grand finale */
 export const VNEC = {
   award: p('vnec-award', 1400, 965, 'we brought the flag', 'Three ISPH students on stage holding the Most Favourite award and the ISPH flag, next to a judge'),
+  stage: p('vnec-stage', 1200, 845, 'asking for $100k', 'The three team members on stage in front of their capital requirements slide'),
 };
 
 /* first photo is the big one, last is the wide one */

@@ -365,7 +365,16 @@ export function SiteHome() {
               <h2 className="section-title display">On stage</h2>
             </div>
             <div className="stage-grid">
-              <Polaroid photo={VNEC.award} className="stage-main" tilt={-1.2} />
+              <div className="stage-photos">
+                <Polaroid photo={VNEC.award} className="stage-main" tilt={-1.2} />
+                <Polaroid
+                  photo={VNEC.stage}
+                  className="stage-second"
+                  small
+                  tape={false}
+                  tilt={2}
+                />
+              </div>
               <div className="stage-card">
                 <span className="stage-kicker">
                   VinUni National High School Entrepreneurship Competition 2026
