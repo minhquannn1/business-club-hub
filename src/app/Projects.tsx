@@ -141,7 +141,7 @@ function ProjectCard({ p, dragging, overlay }: { p: Project; dragging?: boolean;
         </div>
       )}
       <div className="pcard-foot">
-        <span>{p.startDate ? fmtRange(p.startDate, p.endDate) : p.kind === 'event' ? 'Date not set' : 'Ongoing'}</span>
+        <span>{p.startDate ? fmtRange(p.startDate, p.endDate) : p.kind === 'project' ? 'Ongoing' : 'Date not set'}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {prog.total > 0 && (
             <span>

@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, MoreHorizontal, Pencil, Plus, Star, Trash2, Wallet } from 'lucide-react';
 import { useStore, memberName } from '../lib/store';
 import { createTask, deleteProject, updateProject } from '../lib/actions';
-import { STAGES, STAGE_LABEL, TASK_STATUSES } from '../lib/constants';
+import { KIND_LABEL, STAGES, STAGE_LABEL, TASK_STATUSES } from '../lib/constants';
 import { fmtDate, fmtRange, money } from '../lib/format';
 import { useLedger, projectMoney } from '../lib/workbook';
 import type { ProjectReview, Stage, Task } from '../lib/types';
@@ -273,7 +273,7 @@ export function ProjectDetail() {
               <dl className="facts">
                 <div>
                   <dt>Type</dt>
-                  <dd>{p.kind === 'event' ? 'Event' : 'Ongoing project'}</dd>
+                  <dd>{KIND_LABEL[p.kind] ?? 'Project'}</dd>
                 </div>
                 <div>
                   <dt>Dates</dt>
@@ -448,7 +448,7 @@ function Review({ projectId, canEdit }: { projectId: string; canEdit: boolean })
   const store = useStore();
   const p = store.projectMap.get(projectId)!;
   const run = useRun();
-  const [r, setR] = useState<ProjectReview>(() => ({ attendance: 0, rating: 0, wentWell: '', improve: '', notes: '', ...(p.review ?? {}) }));
+  const [r, setR] = useState<ProjectReview>(() => ({ attendance: 0, result: '', rating: 0, wentWell: '', improve: '', notes: '', ...(p.review ?? {}) }));
   const [dirty, setDirty] = useState(false);
   const set = <K extends keyof ProjectReview>(k: K, v: ProjectReview[K]) => {
     setR((x) => ({ ...x, [k]: v }));
@@ -468,9 +468,15 @@ function Review({ projectId, canEdit }: { projectId: string; canEdit: boolean })
       </div>
       <div className="panel-body">
         <div className="form-grid">
-          <Field label="How many people came" hint={p.isPublic ? 'Shown on the public website.' : undefined}>
-            <input className="input num" type="number" min={0} value={r.attendance || ''} onChange={(e) => set('attendance', Math.max(0, parseInt(e.target.value || '0', 10)))} disabled={!canEdit} />
-          </Field>
+          {p.kind === 'competition' ? (
+            <Field label="Result" hint={p.isPublic ? 'Shown on the public website.' : 'e.g. Finalist, 2nd place, Best pitch'}>
+              <input className="input" value={r.result ?? ''} onChange={(e) => set('result', e.target.value)} disabled={!canEdit} placeholder="e.g. 2nd place" />
+            </Field>
+          ) : (
+            <Field label="How many people came" hint={p.isPublic ? 'Shown on the public website.' : undefined}>
+              <input className="input num" type="number" min={0} value={r.attendance || ''} onChange={(e) => set('attendance', Math.max(0, parseInt(e.target.value || '0', 10)))} disabled={!canEdit} />
+            </Field>
+          )}
           <div className="field">
             <span>Overall</span>
             <div className="stars" role="radiogroup" aria-label="Rating out of 5">

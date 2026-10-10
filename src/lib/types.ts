@@ -2,7 +2,7 @@ export type Role = 'exec' | 'member';
 export type Stage = 'idea' | 'planning' | 'active' | 'done';
 export type TaskStatus = 'todo' | 'doing' | 'done';
 export type Priority = 'low' | 'med' | 'high';
-export type ProjectKind = 'event' | 'project';
+export type ProjectKind = 'event' | 'project' | 'competition';
 
 export interface Member {
   id: string; // lowercase email
@@ -22,6 +22,7 @@ export interface Member {
 
 export interface ProjectReview {
   attendance?: number;
+  result?: string; // competitions: placing or award
   rating?: number; // 1..5
   wentWell?: string;
   improve?: string;
@@ -168,6 +169,7 @@ export interface PublicProject {
   location: string;
   color: string;
   attendance?: number;
+  result?: string;
   description: string;
   updatedAt: number;
 }

@@ -42,6 +42,7 @@ function publicMirror(p: Project): PublicProject {
     location: p.location,
     color: p.color,
     attendance: p.review?.attendance ?? 0,
+    result: p.review?.result ?? '',
     description: p.description,
     updatedAt: Date.now(),
   };

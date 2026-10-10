@@ -12,7 +12,7 @@ import {
 import { useStore } from "../lib/store";
 import { usePublicData } from "./usePublic";
 import { fmtDate, fmtRange, initials, todayISO } from "../lib/format";
-import { DEFAULT_SITE, ROLES } from "../lib/constants";
+import { DEFAULT_SITE, KIND_LABEL, ROLES } from '../lib/constants';
 import type { PublicProject } from "../lib/types";
 import { EmptyArt, LogoMark, Pictograms, toneFor } from "../components/Art";
 import { Polaroid } from "./Polaroid";
@@ -118,7 +118,7 @@ function TicketCard({ p }: { p: PublicProject }) {
       </span>
       <span className="ticket-body">
         <span className="ticket-kind">
-          {p.kind === "event" ? "Event" : "Project"}
+          {KIND_LABEL[p.kind] === "Ongoing project" ? "Project" : KIND_LABEL[p.kind] ?? "Project"}
         </span>
         <span className="ticket-title">{p.title}</span>
         {p.blurb && <span className="ticket-blurb">{p.blurb}</span>}
@@ -344,6 +344,7 @@ export function SiteHome() {
                       </span>
                       <strong>{p.title}</strong>
                       <span className="past-blurb">{p.blurb}</span>
+                      {p.result && <span className="past-att">{p.result}</span>}
                       {!!p.attendance && (
                         <span className="past-att">
                           <Users size={14} aria-hidden="true" />{" "}
@@ -598,7 +599,7 @@ export function SiteProject() {
               style={{ ["--c" as string]: p.color }}
             >
               <span className="ticket-kind">
-                {p.kind === "event" ? "Event" : "Project"}
+                {KIND_LABEL[p.kind] === "Ongoing project" ? "Project" : KIND_LABEL[p.kind] ?? "Project"}
               </span>
               <h1 className="display project-title">{p.title}</h1>
               {p.blurb && <p className="project-lead">{p.blurb}</p>}

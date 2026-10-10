@@ -36,6 +36,8 @@ export const roleRank = (title?: string) => {
   return i < 0 ? ROLES.length : i;
 };
 
+export const KIND_LABEL: Record<string, string> = { event: 'Event', project: 'Ongoing project', competition: 'Competition' };
+
 export const TEAMS = ['Leadership', 'MAC (Marketing & Content)', 'Finance & Accounting', 'Logistics & Operations', 'Technical'];
 
 export const DEFAULT_SITE: SiteContent = {
@@ -56,6 +58,7 @@ export const DEFAULT_SITE: SiteContent = {
   partnerText: 'Teachers, alumni and local businesses: sponsor an event, give a talk, or bring us a real problem to work on.',
   activities: [
     { icon: 'ventures', title: 'School booths', text: 'Halloween, Christmas, fairs. We pick what to sell, set the prices and run the stall ourselves.' },
+    { icon: 'competitions', title: 'Competitions', text: 'We put teams into business competitions: case challenges, pitch rounds and business plans.' },
     { icon: 'pitch', title: 'Pitch days', text: 'Got an idea? Three minutes to sell it to the club, then we vote on what to build.' },
     { icon: 'workshop', title: 'Workshops', text: 'Short hands-on sessions on budgeting, marketing and making a simple sales sheet.' },
     { icon: 'talks', title: 'Guest talks', text: 'People who run real businesses come in and answer anything we ask.' },

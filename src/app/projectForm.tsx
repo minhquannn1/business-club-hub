@@ -91,6 +91,7 @@ export function ProjectForm({ project, stage, onClose, onCreated }: { project?: 
             options={[
               { key: 'event', label: 'Event' },
               { key: 'project', label: 'Ongoing project' },
+              { key: 'competition', label: 'Competition' },
             ]}
           />
         </Field>
