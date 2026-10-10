@@ -1,7 +1,7 @@
 import type { Stage, TaskStatus, Priority, SiteContent } from './types';
 
 /** The club owner. Always has exec rights, even before being added to the member list. Mirrored in firestore.rules. */
-export const OWNER_EMAIL = 'ngocminhquannguyen@gmail.com';
+export const OWNER_EMAIL = 'minhquan.n.student@isph.edu.vn';
 
 export const STAGES: { key: Stage; label: string; hint: string }[] = [
   { key: 'idea', label: 'Idea', hint: 'Worth talking about' },

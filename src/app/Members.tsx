@@ -366,7 +366,7 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
             List on the public website's team section (name, title, photo and bio)
           </label>
         )}
-        {asAdmin && f.level !== 'guest' && (f.hidden || isOwnerRow) && (
+        {asAdmin && f.level !== 'guest' && f.hidden && (
           <label className="check full">
             <input type="checkbox" checked={f.hidden} onChange={(e) => set('hidden', e.target.checked)} />
             Backup account: keep its access but leave it out of the members list, pickers and the website

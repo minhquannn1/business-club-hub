@@ -7,7 +7,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import nodemailer, { type Transporter } from 'nodemailer';
 import type { Brand, Email, MailMember } from './emails.js';
 
-export const OWNER_EMAIL = 'ngocminhquannguyen@gmail.com';
+export const OWNER_EMAIL = 'minhquan.n.student@isph.edu.vn';
 
 export class HttpError extends Error {
   constructor(

@@ -18,7 +18,7 @@ service cloud.firestore {
       return request.auth.token.email.lower();
     }
     function isOwner() {
-      return signedIn() && myEmail() == 'ngocminhquannguyen@gmail.com';
+      return signedIn() && myEmail() == 'minhquan.n.student@isph.edu.vn';
     }
     function memberPath() {
       return /databases/$(database)/documents/members/$(myEmail());
@@ -83,7 +83,7 @@ service cloud.firestore {
       allow create: if isAdmin();
       allow update: if isAdmin()
         || (onList() && email == myEmail() && changesOnly(['name', 'photoURL', 'sitePhoto', 'bio', 'uid', 'lastSeenAt', 'showOnSite', 'emailOff']));
-      allow delete: if isAdmin() && email != 'ngocminhquannguyen@gmail.com';
+      allow delete: if isAdmin() && email != 'minhquan.n.student@isph.edu.vn';
     }
 
     // ---------- work ----------
