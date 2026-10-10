@@ -29,5 +29,13 @@ export const PHOTOS = {
   intl: p('international-day', 1400, 933, 'International Day', 'Younger students doing crafts at the International Day stall'),
 };
 
+/* VinUni National High School Entrepreneurship Competition 2026, grand finale */
+export const VNEC = {
+  award: p('vnec-award', 1400, 965, 'we brought the flag', 'Three ISPH students on stage holding the Most Favourite award and the ISPH flag, next to a judge'),
+  pitch: p('vnec-pitch', 900, 1200, 'the pitch', 'A club member pitching on stage at the competition grand finale'),
+  slides: p('vnec-slides', 900, 1200, 'the numbers', 'A club member presenting with a microphone and clicker at the grand finale'),
+  qa: p('vnec-qa', 900, 1200, 'judges’ questions', 'The three team members answering questions from the judges'),
+};
+
 /* first photo is the big one, last is the wide one */
 export const GALLERY = [PHOTOS.team, PHOTOS.queue, PHOTOS.intl, PHOTOS.meeting, PHOTOS.fair, PHOTOS.crowd, PHOTOS.sales, PHOTOS.halloween];

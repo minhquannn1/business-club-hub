@@ -16,10 +16,10 @@ import { DEFAULT_SITE, KIND_LABEL, ROLES } from '../lib/constants';
 import type { PublicProject } from "../lib/types";
 import { EmptyArt, LogoMark, Pictograms, toneFor } from "../components/Art";
 import { Polaroid } from "./Polaroid";
-import { CurlyArrow, Sparkle } from "./Doodles";
+import { CurlyArrow, Sparkle, Star } from "./Doodles";
 import { BoothGame } from "./BoothGame";
 import { StickerHero } from "./StickerHero";
-import { GALLERY } from "./photos";
+import { GALLERY, VNEC } from "./photos";
 import "@fontsource/caveat/latin-600.css";
 import "../styles/site.css";
 
@@ -356,6 +356,48 @@ export function SiteHome() {
                 </div>
               </>
             )}
+          </div>
+        </section>
+
+        <section id="stage" className="site-section stage">
+          <div className="site-wrap">
+            <div className="section-head">
+              <h2 className="section-title display">On stage</h2>
+            </div>
+            <div className="stage-grid">
+              <Polaroid photo={VNEC.award} className="stage-main" tilt={-1.2} />
+              <div className="stage-card">
+                <span className="stage-kicker">
+                  VinUni National High School Entrepreneurship Competition 2026
+                </span>
+                <p className="stage-result display">
+                  Most Favourite{" "}
+                  <span className="stage-last">
+                    Team
+                    <Star className="stage-star" />
+                  </span>
+                </p>
+                <p className="stage-meta">
+                  <CalendarDays size={15} aria-hidden="true" /> 11 April 2026
+                  <MapPin size={15} aria-hidden="true" /> Grand finale, VinUniversity
+                </p>
+                <p className="stage-copy">
+                  Three of us took our own business idea to the national final,
+                  pitched it and took questions from the judges.
+                </p>
+              </div>
+            </div>
+            <div className="stage-strip">
+              {[VNEC.pitch, VNEC.slides, VNEC.qa].map((ph, i) => (
+                <Polaroid
+                  key={ph.src}
+                  photo={ph}
+                  small
+                  tape={i === 1}
+                  tilt={[1.4, -0.8, 1.1][i]}
+                />
+              ))}
+            </div>
           </div>
         </section>
 
