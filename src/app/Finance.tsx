@@ -5,6 +5,8 @@ import { useStore, memberName } from '../lib/store';
 import { createSheet, deleteSheet, importEvents, updateSheet, type ImportedEvent } from '../lib/actions';
 import { fmtDate, money } from '../lib/format';
 import { useLedger, useWorkbook } from '../lib/workbook';
+import { financeStats } from '../lib/financeStats';
+import { BalanceChart, Kpi, MonthlyChart, PLTable, ShareList, pct } from './financeCharts';
 import { colToLetters, isErr, offsetAllRows, FUNCTIONS } from '../lib/formula';
 import type { Sheet } from '../lib/types';
 import { Empty, Field, Modal, Seg, useConfirm, useMenu, useRun } from '../components/ui';
@@ -92,9 +94,14 @@ export function FinancePage() {
               </button>
             )}
             {store.canFinance && !sheet && store.sheets.some((s) => s.isLedger) && (
-              <button className="btn btn-primary" onClick={() => setEntry('out')}>
-                <Plus /> Record expense
-              </button>
+              <>
+                <button className="btn" onClick={() => setEntry('in')}>
+                  <Plus /> Record income
+                </button>
+                <button className="btn btn-primary" onClick={() => setEntry('out')}>
+                  <Plus /> Record expense
+                </button>
+              </>
             )}
           </>
         }
@@ -154,28 +161,25 @@ export function FinancePage() {
 
 function Summary({ onNewLedger, onRecord }: { onNewLedger: () => void; onRecord: (d: 'in' | 'out') => void }) {
   const store = useStore();
-  const { entries, income, expense, balance } = useLedger();
+  const { entries } = useLedger();
   const hasLedger = store.sheets.some((s) => s.isLedger);
-
-  const byProject = useMemo(() => {
-    const m = new Map<string, { spent: number; raised: number }>();
-    for (const e of entries) {
-      const k = e.projectId || '';
-      if (!m.has(k)) m.set(k, { spent: 0, raised: 0 });
-      const x = m.get(k)!;
-      if (e.direction === 'out') x.spent += e.amount;
-      else x.raised += e.amount;
-    }
-    return [...m.entries()].sort((a, b) => b[1].spent - a[1].spent);
-  }, [entries]);
-  const byCat = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const e of entries) if (e.direction === 'out') m.set(e.category || 'Uncategorised', (m.get(e.category || 'Uncategorised') ?? 0) + e.amount);
-    return [...m.entries()].sort((a, b) => b[1] - a[1]);
-  }, [entries]);
-  const recent = [...entries].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 12);
-  const maxProj = Math.max(1, ...byProject.map(([k, v]) => Math.max(v.spent, store.projectMap.get(k)?.budgetPlanned ?? 0)));
-  const maxCat = Math.max(1, ...byCat.map(([, v]) => v));
+  const st = useMemo(() => financeStats(entries, store.projectMap), [entries, store.projectMap]);
+  const titleOf = (pid: string) => {
+    const p = store.projectMap.get(pid);
+    if (p) return { title: p.title, href: `/app/${p.kind === 'competition' ? 'competitions' : 'projects'}/${p.id}` };
+    return { title: pid ? 'Deleted project' : 'Not tied to a project' };
+  };
+  const recent = [...entries].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 10);
+  const budgeted = st.byProject
+    .map((r) => ({ r, p: store.projectMap.get(r.projectId) }))
+    .filter((x) => (x.p?.budgetPlanned ?? 0) > 0)
+    .concat(
+      store.projects
+        .filter((p) => p.budgetPlanned > 0 && !st.byProject.some((r) => r.projectId === p.id))
+        .map((p) => ({ r: { projectId: p.id, revenue: 0, costs: 0, profit: 0, margin: null, roi: null, date: '' }, p })),
+    );
+  const outCount = entries.filter((e) => e.direction === 'out').length;
+  const receiptShare = st.receipts.amountShare;
 
   if (!hasLedger)
     return (
@@ -199,95 +203,166 @@ function Summary({ onNewLedger, onRecord }: { onNewLedger: () => void; onRecord:
 
   return (
     <div style={{ marginTop: 18 }} className="section-gap">
-      <div className="figures fin-figures" style={{ marginBottom: 0 }}>
-        <div className="figure">
-          <span className="val num pos">{money(income)}</span>
-          <span className="lbl">Money in</span>
-        </div>
-        <div className="figure">
-          <span className="val num">{money(expense)}</span>
-          <span className="lbl">Money out</span>
-        </div>
-        <div className="figure">
-          <span className={`val num ${balance < 0 ? 'neg' : ''}`}>{money(balance)}</span>
-          <span className="lbl">Balance</span>
-        </div>
-        <div className="figure">
-          <span className="val num">{entries.length}</span>
-          <span className="lbl">Entries</span>
-        </div>
+      <div className="kpis">
+        <Kpi label="Revenue" value={money(st.revenue, { compact: true })} title={money(st.revenue)} sub={`from ${st.earners} ${st.earners === 1 ? 'event' : 'events'} that sold something`} />
+        <Kpi label="Costs" value={money(st.costs, { compact: true })} title={money(st.costs)} sub={`${outCount} ${outCount === 1 ? 'payment' : 'payments'}`} />
+        <Kpi label="Profit" value={money(st.profit, { compact: true, sign: true })} title={money(st.profit)} tone={st.profit < 0 ? 'neg' : 'pos'} sub={`${pct(st.margin, 1)} of revenue kept`} />
+        <Kpi
+          label="Return on spending"
+          value={st.revenuePerCost === null ? 'n/a' : `${st.revenuePerCost.toFixed(2)}x`}
+          sub={st.revenuePerCost === null ? 'Nothing spent yet' : `Every ${money(1000)} spent brought back ${money(Math.round(st.revenuePerCost * 1000))}`}
+        />
+        <Kpi
+          label="Best event"
+          value={<span className="kpi-name">{st.best ? titleOf(st.best.projectId).title : 'n/a'}</span>}
+          sub={st.best ? `${money(st.best.profit, { compact: true, sign: true })} profit, ${pct(st.best.margin)} margin` : undefined}
+        />
+        <Kpi
+          label="Spending with a receipt"
+          value={pct(receiptShare)}
+          tone={receiptShare !== null && receiptShare < 0.5 ? 'warn' : undefined}
+          sub={`${st.receipts.count} of ${st.receipts.of} payments have a photo`}
+        />
       </div>
 
-      <div className="ov-grid">
+      <div className="fin-grid">
         <section className="panel">
           <div className="panel-head">
-            <h2 className="h3">Spending by project</h2>
-            <span className="small faint">Bar: spent. Line: budget.</span>
+            <h2 className="h3">Revenue and costs by month</h2>
+            {st.undated > 0 && <span className="small faint">{st.undated} without a date left out</span>}
           </div>
-          <div className="panel-body">
-            {byProject.length === 0 ? (
-              <p className="faint">Nothing recorded yet.</p>
-            ) : (
-              <div className="bars">
-                {byProject.map(([pid, v]) => {
-                  const p = store.projectMap.get(pid);
-                  const budget = p?.budgetPlanned ?? 0;
-                  const over = budget > 0 && v.spent > budget;
-                  return (
-                    <div className="bar-row" key={pid || 'general'}>
-                      <span className="ellipsis">{p ? <Link to={`/app/projects/${p.id}`}>{p.title}</Link> : pid ? 'Deleted project' : 'General club money'}</span>
-                      <span className="bar-track" style={{ position: 'relative' }}>
-                        <span className="bar-fill" style={{ display: 'block', width: `${(v.spent / maxProj) * 100}%`, ['--c' as string]: over ? 'var(--neg)' : p?.color ?? 'var(--ink-3)' }} />
-                        {budget > 0 && <span style={{ position: 'absolute', top: -3, bottom: -3, width: 2, background: 'var(--ink)', left: `calc(${(budget / maxProj) * 100}% - 1px)` }} title={`Budget ${money(budget)}`} />}
-                      </span>
-                      <span className={`num small ${over ? 'neg' : ''}`} style={{ textAlign: 'right' }}>
-                        {money(v.spent, { compact: true })}
-                        {budget > 0 && <span className="faint"> / {money(budget, { compact: true })}</span>}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <div className="panel-body">{st.months.length ? <MonthlyChart months={st.months} /> : <p className="faint">Add dates to entries, or to their projects, to see this.</p>}</div>
         </section>
         <section className="panel">
           <div className="panel-head">
-            <h2 className="h3">Where the money goes</h2>
+            <h2 className="h3">Balance over time</h2>
           </div>
-          <div className="panel-body">
-            {byCat.length === 0 ? (
-              <p className="faint">No spending yet.</p>
-            ) : (
-              <div className="bars">
-                {byCat.map(([cat, v]) => (
-                  <div className="bar-row" key={cat}>
-                    <span className="ellipsis">{cat}</span>
-                    <span className="bar-track">
-                      <span className="bar-fill" style={{ display: 'block', width: `${(v / maxCat) * 100}%`, ['--c' as string]: 'var(--ink)' }} />
-                    </span>
-                    <span className="num small">{Math.round((v / expense) * 100)}%</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <div className="panel-body">{st.months.length ? <BalanceChart months={st.months} /> : <p className="faint">Nothing dated yet.</p>}</div>
         </section>
       </div>
 
       <section className="panel">
         <div className="panel-head">
-          <h2 className="h3">Latest entries</h2>
-          {store.canFinance && (
-            <div style={{ display: 'flex', gap: 8 }}>
+          <h2 className="h3">Profit by event</h2>
+        </div>
+        {(st.avgProfitPerEarner !== null || st.topShare !== null) && (
+          <p className="small muted pl-note">
+            {st.avgProfitPerEarner !== null && <>Events that sold something made {money(st.avgProfitPerEarner, { compact: true, sign: true })} each on average. </>}
+            {st.topShare !== null && st.earners > 1 && <>The biggest earner brought in {pct(st.topShare)} of all revenue.</>}
+          </p>
+        )}
+        {st.byProject.length ? <PLTable rows={st.byProject} totals={st} titleOf={titleOf} /> : <Empty title="Nothing recorded yet" />}
+      </section>
+
+      <div className="fin-grid even">
+        <section className="panel">
+          <div className="panel-head">
+            <h2 className="h3">Where revenue comes from</h2>
+            {store.canFinance && (
               <button className="btn btn-sm" onClick={() => onRecord('in')}>
-                Record income
+                <Plus /> Record income
               </button>
-            </div>
+            )}
+          </div>
+          <div className="panel-body">
+            <ShareList items={st.revenueBySource} total={st.revenue} tone="rev" empty="No revenue recorded yet." />
+          </div>
+        </section>
+        <section className="panel">
+          <div className="panel-head">
+            <h2 className="h3">Where the money goes</h2>
+            {store.canFinance && (
+              <button className="btn btn-sm" onClick={() => onRecord('out')}>
+                <Plus /> Record expense
+              </button>
+            )}
+          </div>
+          <div className="panel-body">
+            <ShareList items={st.costsByCategory} total={st.costs} tone="cost" empty="No spending yet." />
+          </div>
+        </section>
+      </div>
+
+      <div className="fin-grid even">
+        <section className="panel">
+          <div className="panel-head">
+            <h2 className="h3">Biggest costs</h2>
+          </div>
+          {st.biggestCosts.length ? (
+            <ul className="list">
+              {st.biggestCosts.map((e) => (
+                <li key={e.sheetId + e.rowId}>
+                  <Link to={`/app/finance/${e.sheetId}`} className="row-link">
+                    <span className="row-main">
+                      <span className="title">{e.description || 'No description'}</span>
+                      <span className="small faint">{[store.projectMap.get(e.projectId)?.title, e.category].filter(Boolean).join(' · ') || 'No project'}</span>
+                    </span>
+                    <span className="num">{money(e.amount)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Empty title="No spending yet" />
           )}
+        </section>
+        {budgeted.length > 0 ? (
+          <section className="panel">
+            <div className="panel-head">
+              <h2 className="h3">Budgets</h2>
+              <span className="small faint">Bar: spent. Line: budget.</span>
+            </div>
+            <div className="panel-body">
+              <div className="bars">
+                {budgeted.map(({ r, p }) => {
+                  const budget = p?.budgetPlanned ?? 0;
+                  const max = Math.max(budget, r.costs, 1);
+                  const over = r.costs > budget;
+                  return (
+                    <div className="bar-row" key={r.projectId}>
+                      <span className="ellipsis">{p ? <Link to={`/app/projects/${p.id}`}>{p.title}</Link> : ''}</span>
+                      <span className="bar-track" style={{ position: 'relative' }}>
+                        <span className="bar-fill" style={{ display: 'block', width: `${(r.costs / max) * 100}%`, ['--c' as string]: over ? 'var(--neg)' : p?.color ?? 'var(--ink-3)' }} />
+                        <span style={{ position: 'absolute', top: -3, bottom: -3, width: 2, background: 'var(--ink)', left: `calc(${(budget / max) * 100}% - 1px)` }} title={`Budget ${money(budget)}`} />
+                      </span>
+                      <span className={`num small ${over ? 'neg' : ''}`} style={{ textAlign: 'right' }}>
+                        {money(r.costs, { compact: true })}
+                        <span className="faint"> / {money(budget, { compact: true })}</span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+        ) : (
+          <section className="panel">
+            <div className="panel-head">
+              <h2 className="h3">Keeping the books clean</h2>
+            </div>
+            <ul className="tidy">
+              <li className={st.undated ? 'todo' : 'ok'}>
+                {st.undated ? `${st.undated} ${st.undated === 1 ? 'entry has' : 'entries have'} no date, and neither does their project.` : 'Every entry has a date, or its project does.'}
+              </li>
+              <li className={st.uncategorised.count ? 'todo' : 'ok'}>
+                {st.uncategorised.count
+                  ? `${st.uncategorised.count} ${st.uncategorised.count === 1 ? 'entry is' : 'entries are'} under Other or have no category (${money(st.uncategorised.amount, { compact: true })}). A real category makes the charts above more useful.`
+                  : 'Every entry has a category.'}
+              </li>
+              <li className={receiptShare !== null && receiptShare < 0.9 ? 'todo' : 'ok'}>
+                {st.receipts.of - st.receipts.count > 0 ? `${st.receipts.of - st.receipts.count} payments have no receipt photo.` : 'Every payment has a receipt photo.'}
+              </li>
+            </ul>
+          </section>
+        )}
+      </div>
+
+      <section className="panel">
+        <div className="panel-head">
+          <h2 className="h3">Latest entries</h2>
         </div>
         {recent.length === 0 ? (
-          <Empty title="Nothing recorded yet">{store.canFinance ? 'Use Record expense, or type straight into the ledger sheet.' : null}</Empty>
+          <Empty title="Nothing recorded yet">{store.canFinance ? 'Use Record income or Record expense, or type straight into the ledger sheet.' : null}</Empty>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table className="table">

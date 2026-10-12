@@ -30,6 +30,9 @@ export function demoData() {
       { id: 'r7', name: 'Global Finale in Philadelphia (top 10)', date: '2027-04-29' },
     ] },
     { ...base, id: 'vnec', title: 'VNEC 2026', kind: 'competition', summary: 'VinUni National High School Entrepreneurship Competition.', stage: 'done', leadEmail: OWNER_EMAIL, startDate: '2026-04-11', endDate: '2026-04-11', color: '#0E9F6E', budgetPlanned: 0, organizer: 'VinUniversity', review: { result: 'Most Favourite Team' } },
+    { ...base, id: 'hal', title: 'Halloween Booth', kind: 'event', summary: 'Cookies and drinks at the Halloween fair.', stage: 'done', leadEmail: OWNER_EMAIL, startDate: '2025-10-31', endDate: '2025-10-31', color: '#EA580C', budgetPlanned: 0 },
+    { ...base, id: 'xmas', title: 'Christmas Primary Fair', kind: 'event', summary: 'Games and snacks for the primary school.', stage: 'done', leadEmail: 'linh@school.vn', startDate: '2025-12-12', endDate: '2025-12-12', color: '#DC2626', budgetPlanned: 0 },
+    { ...base, id: 'tet', title: 'Tet Festival', kind: 'event', summary: 'Lucky money envelopes and drinks.', stage: 'done', leadEmail: 'an@school.vn', startDate: '2026-02-06', endDate: '2026-02-06', color: '#B91C1C', budgetPlanned: 0 },
     { ...base, id: 'pod', title: 'Founder interview podcast', kind: 'project', summary: 'Monthly interviews with local business owners.', stage: 'active', leadEmail: 'minh@school.vn', startDate: d(-20), endDate: d(60), color: '#9333EA', budgetPlanned: 800_000 },
     { ...base, id: 'fair', title: 'Careers fair stall', kind: 'event', summary: 'Club stand at the school careers fair.', stage: 'done', leadEmail: 'an@school.vn', startDate: d(-30), endDate: d(-30), color: '#1E8A5A', budgetPlanned: 500_000, review: { attendance: 140, rating: 4, wentWell: 'Quiz drew a crowd', improve: 'Print fewer flyers' }, isPublic: true },
   ];
@@ -58,7 +61,16 @@ export function demoData() {
     r(3, { [k.date]: d(-4), [k.description]: 'Sponsorship from café', [k.direction]: 'In', [k.category]: 'Sponsorship', [k.project]: 'bw', [k.amount]: '2000000' }),
     r(4, { [k.date]: d(-2), [k.description]: 'Microphone rental', [k.direction]: 'Out', [k.category]: 'Supplies', [k.project]: 'pod', [k.amount]: '700000' }),
     r(5, { [k.description]: 'Total out', [k.amount]: '=SUMIF(C1:C5,"Out",F1:F5)' }),
-    ...Array.from({ length: 12 }, (_, i) => r(6 + i, {})),
+    // past booths, imported without dates like the real ones
+    r(6, { [k.description]: 'Booth sales', [k.direction]: 'In', [k.category]: 'Product sales', [k.project]: 'hal', [k.amount]: '11011000' }),
+    r(7, { [k.description]: 'Cookies', [k.direction]: 'Out', [k.category]: 'Food & drinks', [k.project]: 'hal', [k.amount]: '4450000', [k.receipt]: 'x' }),
+    r(8, { [k.description]: 'Cash float', [k.direction]: 'Out', [k.category]: 'Other', [k.project]: 'hal', [k.amount]: '1000000' }),
+    r(9, { [k.description]: 'Booth sales', [k.direction]: 'In', [k.category]: 'Product sales', [k.project]: 'xmas', [k.amount]: '7200000' }),
+    r(10, { [k.description]: 'Game prizes', [k.direction]: 'Out', [k.category]: 'Prizes', [k.project]: 'xmas', [k.amount]: '2100000' }),
+    r(11, { [k.description]: 'Snacks', [k.direction]: 'Out', [k.category]: 'Food & drinks', [k.project]: 'xmas', [k.amount]: '3200000' }),
+    r(12, { [k.description]: 'Envelope sales', [k.direction]: 'In', [k.category]: 'Product sales', [k.project]: 'tet', [k.amount]: '1500000' }),
+    r(13, { [k.description]: 'Envelopes and printing', [k.direction]: 'Out', [k.category]: 'Printing', [k.project]: 'tet', [k.amount]: '1800000' }),
+    ...Array.from({ length: 12 }, (_, i) => r(14 + i, {})),
   ];
   const activity: Activity[] = [
     { id: 'x1', at: now - 120e3, actorEmail: 'linh@school.vn', verb: 'completed', targetType: 'task', targetId: 't6', targetTitle: 'Buy prizes' },
