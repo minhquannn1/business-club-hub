@@ -2617,3 +2617,26 @@ button.welcome-step:hover {
     min-width: 120px;
   }
 }
+.undated p {
+  margin: 0 0 12px;
+  max-width: 760px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.undated-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px 20px;
+}
+.undated-list li {
+  display: grid;
+  gap: 1px;
+  font-size: 14px;
+}
+.undated-list a {
+  font-weight: 580;
+  color: var(--ink);
+}

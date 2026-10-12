@@ -61,6 +61,8 @@ describe('finance stats', () => {
     expect(s.months.at(-1)?.month).toBe('2026-10');
     expect(s.months.at(-1)?.balance).toBe(8_350_000);
     expect(s.undated).toBe(1);
+    expect(s.undatedProjects).toEqual([{ projectId: '', count: 1 }]);
+    expect(s.datedShare).toBeCloseTo((25_700_000 - 50_000) / 25_700_000);
   });
   it('tracks receipts and uncategorised spending', () => {
     expect(s.receipts.count).toBe(2);

@@ -225,6 +225,7 @@ function Summary({ onNewLedger, onRecord }: { onNewLedger: () => void; onRecord:
         />
       </div>
 
+      {st.months.length > 0 && (st.datedShare ?? 0) >= 0.8 ? (
       <div className="fin-grid">
         <section className="panel">
           <div className="panel-head">
@@ -240,6 +241,33 @@ function Summary({ onNewLedger, onRecord }: { onNewLedger: () => void; onRecord:
           <div className="panel-body">{st.months.length ? <BalanceChart months={st.months} /> : <p className="faint">Nothing dated yet.</p>}</div>
         </section>
       </div>
+      ) : (
+        <section className="panel">
+          <div className="panel-head">
+            <h2 className="h3">Revenue and costs over time</h2>
+          </div>
+          <div className="panel-body undated">
+            <p>
+              {st.undated} of {entries.length} entries have no date, and neither do the events they belong to, so a monthly chart would only show {pct(st.datedShare)} of the money. Give each event its date and the
+              monthly charts appear here.
+            </p>
+            <ul className="undated-list">
+              {st.undatedProjects.map(({ projectId, count }) => {
+                const t = titleOf(projectId);
+                return (
+                  <li key={projectId || 'general'}>
+                    {t.href ? <Link to={t.href}>{t.title}</Link> : <span>{t.title}</span>}
+                    <span className="small faint">
+                      {count} {count === 1 ? 'entry' : 'entries'}
+                      {projectId ? ': set the dates with Edit on the project page' : ': add a date in the ledger'}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      )}
 
       <section className="panel">
         <div className="panel-head">

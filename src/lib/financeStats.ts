@@ -46,6 +46,10 @@ export interface FinanceStats {
   costsByCategory: [string, number][];
   months: MonthRow[];
   undated: number; // entries with no date of their own or from their project
+  /** share of all money moved (in and out) that has a date, so time charts can be trusted */
+  datedShare: number | null;
+  /** projects whose entries have no date, with how many; '' = entries not tied to a project */
+  undatedProjects: { projectId: string; count: number }[];
   receipts: { count: number; of: number; amountShare: number | null };
   uncategorised: { count: number; amount: number };
   biggestCosts: LedgerEntry[];
@@ -77,6 +81,8 @@ export function financeStats(entries: LedgerEntry[], projects: Map<string, Proje
   const cat = new Map<string, number>();
   const monthly = new Map<string, { revenue: number; costs: number }>();
   let undated = 0;
+  let datedAmount = 0;
+  const undatedBy = new Map<string, number>();
   let receiptCount = 0;
   let receiptAmount = 0;
   let outCount = 0;
@@ -109,7 +115,11 @@ export function financeStats(entries: LedgerEntry[], projects: Map<string, Proje
       if (inflow) x.revenue += e.amount;
       else x.costs += e.amount;
       monthly.set(m, x);
-    } else undated++;
+      datedAmount += e.amount;
+    } else {
+      undated++;
+      undatedBy.set(k, (undatedBy.get(k) ?? 0) + 1);
+    }
 
     if (!inflow) {
       outCount++;
@@ -155,6 +165,8 @@ export function financeStats(entries: LedgerEntry[], projects: Map<string, Proje
     costsByCategory: sortDesc(cat),
     months,
     undated,
+    datedShare: ratio(datedAmount, revenue + costs),
+    undatedProjects: [...undatedBy.entries()].map(([projectId, count]) => ({ projectId, count })).sort((a, b) => b.count - a.count),
     receipts: { count: receiptCount, of: outCount, amountShare: ratio(receiptAmount, costs) },
     uncategorised,
     biggestCosts: entries.filter((e) => e.direction === 'out').sort((a, b) => b.amount - a.amount).slice(0, 5),
