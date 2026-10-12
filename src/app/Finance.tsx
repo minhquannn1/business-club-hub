@@ -248,7 +248,7 @@ function Summary({ onNewLedger, onRecord }: { onNewLedger: () => void; onRecord:
           </div>
           <div className="panel-body undated">
             <p>
-              {st.undated} of {entries.length} entries have no date, and neither do the events they belong to, so a monthly chart would only show {pct(st.datedShare)} of the money. Give each event its date and the
+              {st.undated} of {entries.length} entries have no date, and neither do the events they belong to, so a monthly chart would only show {(st.datedShare ?? 0) < 0.01 ? 'almost none' : pct(st.datedShare)} of the money. Give each event its date and the
               monthly charts appear here.
             </p>
             <ul className="undated-list">
