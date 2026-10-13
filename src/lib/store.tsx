@@ -18,6 +18,7 @@ import { OWNER_EMAIL, DEFAULT_SITE, LEDGER_CATEGORIES } from './constants';
 import type { Activity, Announcement, Meeting, Member, Project, Row, Sheet, SiteContent, Task, SchoolDate, QuickLink } from './types';
 import { setCurrency } from './format';
 import { hasPerm, levelOf } from './access';
+import { isAssigned } from './assignees';
 
 export type Access = 'loading' | 'signedOut' | 'noAccess' | 'ok' | 'error';
 
@@ -102,7 +103,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const g = DEMO_GUEST_EMAIL;
         setMe(dd.members.find((m) => m.id === g) ?? null);
         setProjects(dd.projects.filter((p) => p.leadEmail === g || p.teamEmails.includes(g)));
-        setTasks(dd.tasks.filter((t) => t.assigneeEmail === g));
+        setTasks(dd.tasks.filter((t) => isAssigned(t, g)));
         setMeetings(dd.meetings.filter((m) => m.attendees.includes(g)));
         setLoaded({ members: true, projects: true, tasks: true, meetings: true, sheets: true, rows: true });
         setError('');
@@ -235,7 +236,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const merge = () => setProjects([...new Map([...byTeam, ...byLead].map((p) => [p.id, p])).values()]);
       sub<Project>('projects', query(collection(db, 'projects'), where('teamEmails', 'array-contains', me)), (v) => ((byTeam = v), merge()));
       sub<Project>('projectsLed', query(collection(db, 'projects'), where('leadEmail', '==', me)), (v) => ((byLead = v), merge()));
-      sub<Task>('tasks', query(collection(db, 'tasks'), where('assigneeEmail', '==', me)), setTasks);
+      // tasks given to them: older tasks only have assigneeEmail, newer ones list everyone in assigneeEmails
+      let mineOld: Task[] = [];
+      let mineNew: Task[] = [];
+      const mergeTasks = () => setTasks([...new Map([...mineOld, ...mineNew].map((t) => [t.id, t])).values()]);
+      sub<Task>('tasks', query(collection(db, 'tasks'), where('assigneeEmail', '==', me)), (v) => ((mineOld = v), mergeTasks()));
+      sub<Task>('tasksShared', query(collection(db, 'tasks'), where('assigneeEmails', 'array-contains', me)), (v) => ((mineNew = v), mergeTasks()));
       sub<Meeting>('meetings', query(collection(db, 'meetings'), where('attendees', 'array-contains', me)), setMeetings);
       setLoaded((l) => ({ ...l, sheets: true, rows: true }));
       return () => subs.forEach((u) => u());

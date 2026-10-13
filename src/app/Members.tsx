@@ -8,6 +8,7 @@ import { ago, initials } from '../lib/format';
 import { emailReady, notify } from '../lib/notify';
 import type { Member, Perm } from '../lib/types';
 import { accessFields, levelOf, LEVELS, PERMS, type Level } from '../lib/access';
+import { isAssigned } from '../lib/assignees';
 import { Avatar, Empty, Field, Modal, Seg, useConfirm, useRun, useToast } from '../components/ui';
 import { PageHead } from './Shell';
 import { EmptyArt } from '../components/Art';
@@ -40,7 +41,7 @@ export function MembersPage() {
   const projectsOf = (email: string) => store.projects.filter((p) => p.stage !== 'done' && (p.leadEmail === email || p.teamEmails?.includes(email)));
 
   const card = (m: Member) => {
-    const openTasks = store.tasks.filter((t) => t.assigneeEmail === m.id && t.status !== 'done').length;
+    const openTasks = store.tasks.filter((t) => isAssigned(t, m.id) && t.status !== 'done').length;
     const leads = store.projects.filter((p) => p.leadEmail === m.id && p.stage !== 'done').length;
     return (
       <button key={m.id} className="member-card" onClick={() => setOpen(m)}>
@@ -191,7 +192,7 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
   const asAdmin = store.isAdmin;
   const canEdit = asAdmin || !!self;
   const isOwnerRow = member.id === OWNER_EMAIL;
-  const openTasks = store.tasks.filter((t) => t.assigneeEmail === member.id && t.status !== 'done');
+  const openTasks = store.tasks.filter((t) => isAssigned(t, member.id) && t.status !== 'done');
   const leads = store.projects.filter((p) => p.leadEmail === member.id);
   const handOverWhat = [
     openTasks.length ? `${openTasks.length} open ${openTasks.length === 1 ? 'task' : 'tasks'}` : '',
@@ -450,7 +451,7 @@ export function ProfileModal({ member, self, onClose }: { member: Member; self?:
                     body: 'They become the person in charge and the project lead. Done tasks stay where they are.',
                     confirm: 'Hand over',
                   });
-                  if (ok) await run(() => handOver(openTasks, leads, to.id, member.name || member.email, to.name || to.email), `Handed over to ${to.name || to.email}`);
+                  if (ok) await run(() => handOver(openTasks, leads, member.id, to.id, member.name || member.email, to.name || to.email), `Handed over to ${to.name || to.email}`);
                   setHandTo('');
                 }}
               >

@@ -7,7 +7,7 @@
    POST { type: 'announcement', id }         exec only: email an announcement
    POST { type: 'meeting', id }              email meeting notes to who was there
    POST { type: 'invite', email }            admins only: send someone who was just added the sign-in link */
-import { announcementEmail, assignedEmail, digestEmail, digestFor, inviteEmail, meetingEmail, vnToday, type MailMeeting, type MailTask } from './_lib/emails.js';
+import { announcementEmail, assignedEmail, assigneesOf, digestEmail, digestFor, inviteEmail, meetingEmail, vnToday, type MailMeeting, type MailTask } from './_lib/emails.js';
 import { HttpError, OWNER_EMAIL, adminAuth, brand, db, fail, header, loadMembers, mailConfigured, projectTitles, send, type Req, type Res } from './_lib/server.js';
 
 type Body = { type?: string; taskId?: string; id?: string; email?: string };
@@ -44,8 +44,8 @@ export default async function handler(req: Req, res: Res) {
 
     switch (body.type) {
       case 'test': {
-        const snap = await db().collection('tasks').where('assigneeEmail', '==', me).get();
-        const tasks = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<MailTask, 'id'>) }));
+        const [a, b2] = await Promise.all([db().collection('tasks').where('assigneeEmail', '==', me).get(), db().collection('tasks').where('assigneeEmails', 'array-contains', me).get()]);
+        const tasks = [...new Map([...a.docs, ...b2.docs].map((d) => [d.id, { id: d.id, ...(d.data() as Omit<MailTask, 'id'>) }])).values()];
         const d = digestFor(tasks, vnToday());
         const has = d.today.length + d.tomorrow.length + d.overdue.length > 0;
         const mail = has
@@ -61,17 +61,28 @@ export default async function handler(req: Req, res: Res) {
         const ref = db().doc(`tasks/${body.taskId}`);
         const snap = await ref.get();
         if (!snap.exists) throw new HttpError(404, 'Task not found');
-        const t = { id: snap.id, ...(snap.data() as Omit<MailTask, 'id'> & { notifiedTo?: string }) };
-        const to = t.assigneeEmail;
-        const target = to ? members.get(to) : undefined;
-        if (!to || to === me || t.status === 'done' || t.notifiedTo === to || !target || target.emailOff) {
+        const t = { id: snap.id, ...(snap.data() as Omit<MailTask, 'id'> & { notifiedTo?: string; notified?: string[] }) };
+        const everyone = assigneesOf(t);
+        // each person hears about a task once; whoever assigned it does not email themselves
+        const already = new Set([...(t.notified ?? []), ...(t.notifiedTo ? [t.notifiedTo] : [])]);
+        const targets = t.status === 'done' ? [] : everyone.filter((e) => e !== me && !already.has(e) && members.has(e) && !members.get(e)!.emailOff);
+        if (!targets.length) {
           res.status(200).json({ ok: true, sent: 0 });
           return;
         }
         const projects = await projectTitles();
-        await send(b, assignedEmail(b, target, t, nameOf(me), projects.get(t.projectId) || ''), { to }, me);
-        await ref.update({ notifiedTo: to });
-        res.status(200).json({ ok: true, sent: 1 });
+        const sentTo: string[] = [];
+        for (const to of targets) {
+          const others = everyone.filter((e) => e !== to).map(nameOf);
+          try {
+            await send(b, assignedEmail(b, members.get(to), t, nameOf(me), projects.get(t.projectId) || '', others), { to }, me);
+            sentTo.push(to);
+          } catch (e) {
+            console.error('[mail] task', to, e);
+          }
+        }
+        if (sentTo.length) await ref.update({ notified: [...already, ...sentTo] });
+        res.status(200).json({ ok: true, sent: sentTo.length });
         return;
       }
 

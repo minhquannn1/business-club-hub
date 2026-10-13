@@ -2,7 +2,7 @@
    Each member with a task due today or tomorrow, an overdue task, or a competition
    deadline coming up for a team they are on gets one email.
    It runs at most once per Vietnam day, so calling it again does nothing. */
-import { digestEmail, digestFor, roundsToMention, vnToday, type MailRound, type MailTask } from './_lib/emails.js';
+import { assigneesOf, digestEmail, digestFor, roundsToMention, vnToday, type MailRound, type MailTask } from './_lib/emails.js';
 import { brand, db, fail, header, loadMembers, send, type Req, type Res } from './_lib/server.js';
 
 export default async function handler(req: Req, res: Res) {
@@ -36,10 +36,12 @@ export default async function handler(req: Req, res: Res) {
     const byPerson = new Map<string, MailTask[]>();
     for (const d of taskSnap.docs) {
       const t = { id: d.id, ...(d.data() as Omit<MailTask, 'id'>) };
-      if (!t.assigneeEmail || !t.dueDate) continue;
-      const list = byPerson.get(t.assigneeEmail) ?? [];
-      list.push(t);
-      byPerson.set(t.assigneeEmail, list);
+      if (!t.dueDate) continue;
+      for (const who of assigneesOf(t)) {
+        const list = byPerson.get(who) ?? [];
+        list.push(t);
+        byPerson.set(who, list);
+      }
     }
 
     const sent: string[] = [];

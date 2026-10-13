@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { addDays, format } from 'date-fns';
 import { CheckSquare, FolderKanban, Megaphone, Plus, Smartphone, UserRound } from 'lucide-react';
 import { useStore } from '../lib/store';
+import { isAssigned } from '../lib/assignees';
 import { fmtRange, money, todayISO } from '../lib/format';
 import { COMP_STAGE_LABEL, STAGE_LABEL } from '../lib/constants';
 import { useLedger, projectMoney } from '../lib/workbook';
@@ -38,7 +39,7 @@ export function Overview() {
   const today = todayISO();
   const soon = format(addDays(new Date(), 30), 'yyyy-MM-dd');
 
-  const myTasks = useMemo(() => store.tasks.filter((t) => t.assigneeEmail === store.myEmail && t.status !== 'done').sort(sortTasks), [store.tasks, store.myEmail]);
+  const myTasks = useMemo(() => store.tasks.filter((t) => isAssigned(t, store.myEmail) && t.status !== 'done').sort(sortTasks), [store.tasks, store.myEmail]);
   const overdue = store.tasks.filter((t) => t.status !== 'done' && t.dueDate && t.dueDate < today);
   const running = store.projects.filter((p) => p.stage === 'active' || p.stage === 'planning');
   const upcoming = store.projects

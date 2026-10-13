@@ -77,7 +77,8 @@ export interface Task {
   title: string;
   notes: string;
   projectId: string; // '' if none
-  assigneeEmail: string;
+  assigneeEmail: string; // the first person on it ('' if nobody)
+  assigneeEmails?: string[]; // everyone on it; older tasks only have assigneeEmail
   dueDate: string;
   priority: Priority;
   status: TaskStatus;
@@ -86,6 +87,7 @@ export interface Task {
   createdAt: number;
   updatedAt: number;
   completedAt?: number;
+  notified?: string[]; // set by the server: who has been emailed about this task
 }
 
 export interface ActionItem {

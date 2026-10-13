@@ -96,25 +96,34 @@ service cloud.firestore {
         || (leads(id) && request.resource.data.leadEmail == resource.data.leadEmail);
     }
 
+    // a task can have several people on it: assigneeEmails lists them all, assigneeEmail keeps the first
+    function onTask(data) {
+      return data.assigneeEmail == myEmail() || myEmail() in data.get('assigneeEmails', []);
+    }
+    // a task that is only for the person writing it
+    function onlyMine(data) {
+      return data.assigneeEmail == myEmail() && data.get('assigneeEmails', [myEmail()]).hasOnly([myEmail()]);
+    }
     match /tasks/{id} {
-      allow read: if isMember() || (isGuest() && resource.data.assigneeEmail == myEmail());
+      allow read: if isMember()
+        || (isGuest() && (resource.data.assigneeEmail == myEmail() || myEmail() in resource.data.assigneeEmails));
       allow create: if onList() && request.resource.data.createdBy == myEmail()
         && (isExec()
-            || (isMember() && (leads(request.resource.data.projectId) || request.resource.data.assigneeEmail == myEmail()))
-            || (isGuest() && request.resource.data.assigneeEmail == myEmail()
+            || (isMember() && (leads(request.resource.data.projectId) || onlyMine(request.resource.data)))
+            || (isGuest() && onlyMine(request.resource.data)
                 && (request.resource.data.projectId == '' || guestOn(request.resource.data.projectId))));
       allow update: if isExec()
         || (isMember() && leads(resource.data.projectId))
-        || (onList() && resource.data.createdBy == myEmail() && resource.data.assigneeEmail == myEmail()
-            && request.resource.data.assigneeEmail == myEmail()
+        || (onList() && resource.data.createdBy == myEmail() && onlyMine(resource.data)
+            && onlyMine(request.resource.data)
             && request.resource.data.projectId == resource.data.projectId)
-        || (isMember() && resource.data.createdBy == myEmail() && resource.data.assigneeEmail == myEmail()
-            && request.resource.data.assigneeEmail == myEmail()
+        || (isMember() && resource.data.createdBy == myEmail() && onlyMine(resource.data)
+            && onlyMine(request.resource.data)
             && (request.resource.data.projectId == '' || leads(request.resource.data.projectId)))
-        || (onList() && resource.data.assigneeEmail == myEmail() && changesOnly(['status', 'updatedAt', 'completedAt']));
+        || (onList() && onTask(resource.data) && changesOnly(['status', 'updatedAt', 'completedAt']));
       allow delete: if isExec()
         || (isMember() && leads(resource.data.projectId))
-        || (onList() && resource.data.createdBy == myEmail() && resource.data.assigneeEmail == myEmail());
+        || (onList() && resource.data.createdBy == myEmail() && onlyMine(resource.data));
     }
 
     match /meetings/{id} {

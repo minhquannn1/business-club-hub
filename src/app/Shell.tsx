@@ -23,6 +23,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import { useStore } from '../lib/store';
+import { isAssigned } from '../lib/assignees';
 import { setActor } from '../lib/actions';
 import { Avatar, useMenu } from '../components/ui';
 import { LogoMark } from '../components/Art';
@@ -83,7 +84,7 @@ export function Shell() {
     return () => document.removeEventListener('keydown', h);
   }, []);
 
-  const myOpen = useMemo(() => tasks.filter((t) => t.assigneeEmail === myEmail && t.status !== 'done').length, [tasks, myEmail]);
+  const myOpen = useMemo(() => tasks.filter((t) => isAssigned(t, myEmail) && t.status !== 'done').length, [tasks, myEmail]);
 
   const links: { to: string; label: string; icon: ReactNode; badge?: number; end?: boolean; website?: boolean; club?: boolean }[] = [
     { to: '/app', label: 'Overview', icon: <LayoutDashboard />, end: true },

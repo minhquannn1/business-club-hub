@@ -6,9 +6,16 @@ export interface MailTask {
   title: string;
   projectId: string;
   assigneeEmail: string;
+  assigneeEmails?: string[];
   dueDate: string;
   status: string;
   notes?: string;
+}
+
+/** Everyone on a task. Older tasks only have assigneeEmail. */
+export function assigneesOf(t: Pick<MailTask, 'assigneeEmail' | 'assigneeEmails'>): string[] {
+  const list = t.assigneeEmails?.length ? t.assigneeEmails : t.assigneeEmail ? [t.assigneeEmail] : [];
+  return [...new Set(list.filter(Boolean))];
 }
 
 export interface MailMember {
@@ -192,19 +199,20 @@ export function digestEmail(brand: Brand, member: MailMember, d: Digest, project
   return { subject, html: layout(brand, subject, html, { label: cta, url }, reminderFooter(brand)), text };
 }
 
-export function assignedEmail(brand: Brand, member: MailMember | undefined, task: MailTask, by: string, projectTitle: string): Email {
+export function assignedEmail(brand: Brand, member: MailMember | undefined, task: MailTask, by: string, projectTitle: string, others: string[] = []): Email {
   const subject = `New task: ${task.title}`;
   const rows: [string, string][] = [
     ['Project', projectTitle],
     ['Due', task.dueDate ? longDate(task.dueDate) : ''],
     ['From', by],
+    ['With', others.join(', ')],
   ];
   const facts = rows
     .filter(([, v]) => v)
     .map(([k, v]) => `<tr><td style="padding:3px 14px 3px 0;color:#777;font-size:13px">${k}</td><td style="padding:3px 0">${esc(v)}</td></tr>`)
     .join('');
   const notes = task.notes?.trim() ? paragraphs(task.notes) : '';
-  const url = projectTitle && task.projectId ? `${brand.siteUrl}/app/projects/${task.projectId}` : `${brand.siteUrl}/app/tasks`;
+  const url = `${brand.siteUrl}/app/tasks?open=${encodeURIComponent(task.id)}`;
   const html = `<p style="margin:0 0 14px;line-height:1.6">Hi ${esc(firstName(member))}, ${esc(by)} gave you a task.</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px">${facts}</table>${notes}`;
   const text = [`Hi ${firstName(member)}, ${by} gave you a task.`, '', task.title, ...rows.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`), task.notes?.trim() ? `\n${task.notes.trim()}` : '', '', `Open it: ${url}`].join('\n');

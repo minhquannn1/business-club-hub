@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { announcementEmail, assignedEmail, daysBetween, digestEmail, digestFor, inviteEmail, meetingEmail, nagToday, roundsToMention, vnToday, type MailTask } from './emails';
+import { announcementEmail, assignedEmail, assigneesOf, daysBetween, digestEmail, digestFor, inviteEmail, meetingEmail, nagToday, roundsToMention, vnToday, type MailTask } from './emails';
 
 const brand = { clubName: 'Business Club', siteUrl: 'https://isphbusiness.club' };
 const t = (id: string, dueDate: string, status = 'todo'): MailTask => ({ id, title: `Task ${id}`, projectId: 'p1', assigneeEmail: 'a@x.com', dueDate, status });
@@ -62,7 +62,16 @@ describe('emails', () => {
     expect(m.subject).toBe('New task: Task a');
     expect(m.text).toContain('Quân gave you a task');
     expect(m.text).toContain('Due: Friday 30 October');
-    expect(m.html).toContain('/app/projects/p1');
+    expect(m.html).toContain('/app/tasks?open=a');
+  });
+  it('names the other people on a shared task', () => {
+    const m = assignedEmail(brand, { email: 'a@x.com', name: 'Linh' }, t('a', '2026-10-30'), 'Quân', '', ['Hyuna', 'Bình']);
+    expect(m.text).toContain('With: Hyuna, Bình');
+  });
+  it('reads everyone on a task, old and new style', () => {
+    expect(assigneesOf({ assigneeEmail: 'a@x', assigneeEmails: ['a@x', 'b@x', 'a@x'] })).toEqual(['a@x', 'b@x']);
+    expect(assigneesOf({ assigneeEmail: 'a@x' })).toEqual(['a@x']);
+    expect(assigneesOf({ assigneeEmail: '' })).toEqual([]);
   });
   it('lists meeting action items with names', () => {
     const m = meetingEmail(

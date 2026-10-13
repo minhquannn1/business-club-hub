@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Check, Plus, Search, Trash2 } from 'lucide-react';
+import { Check, Plus, Search, Trash2, X } from 'lucide-react';
 import { differenceInCalendarDays } from 'date-fns';
 import { useStore, memberName } from '../lib/store';
 import { createTask, deleteTask, updateTask } from '../lib/actions';
 import { PRIORITIES, PRIORITY_LABEL, TASK_STATUSES } from '../lib/constants';
 import { dueLabel, toDate } from '../lib/format';
 import type { Priority, Task, TaskStatus } from '../lib/types';
+import { assigneesOf, isAssigned } from '../lib/assignees';
 import { Avatar, Empty, Field, Modal, Seg, useConfirm, useRun } from '../components/ui';
 import { PageHead } from './Shell';
 import { EmptyArt } from '../components/Art';
@@ -16,8 +17,12 @@ export function useTaskPerms() {
   return useMemo(() => {
     const isLead = (projectId: string) => !!projectId && projectMap.get(projectId)?.leadEmail === myEmail;
     return {
-      canEdit: (t: Pick<Task, 'projectId' | 'createdBy' | 'assigneeEmail'>) => isExec || isLead(t.projectId) || (t.createdBy === myEmail && t.assigneeEmail === myEmail),
-      canTick: (t: Task) => isExec || isLead(t.projectId) || t.assigneeEmail === myEmail,
+      // a member's own task: they made it and it is only theirs
+      canEdit: (t: Pick<Task, 'projectId' | 'createdBy' | 'assigneeEmail' | 'assigneeEmails'>) => {
+        const who = assigneesOf(t);
+        return isExec || isLead(t.projectId) || (t.createdBy === myEmail && who.length === 1 && who[0] === myEmail);
+      },
+      canTick: (t: Task) => isExec || isLead(t.projectId) || isAssigned(t, myEmail),
       canAssignOthers: (projectId: string) => isExec || isLead(projectId),
     };
   }, [isExec, myEmail, projectMap]);
@@ -41,7 +46,7 @@ export function TaskRow({ task, onOpen, showProject = true }: { task: Task; onOp
         data-status={task.status}
         disabled={!canTick}
         aria-label={done ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`}
-        title={canTick ? (done ? 'Mark as not done' : 'Mark as done') : 'Only the person assigned can tick this off'}
+        title={canTick ? (done ? 'Mark as not done' : 'Mark as done') : 'Only the people on this task can tick it off'}
         onClick={() => run(() => updateTask(task, { status: nextStatus[task.status] }))}
       >
         <Check strokeWidth={3} />
@@ -60,8 +65,71 @@ export function TaskRow({ task, onOpen, showProject = true }: { task: Task; onOp
       </button>
       <span className="task-meta">
         {!done && task.dueDate && <span className={`chip ${due.tone === 'late' ? 'late' : due.tone === 'soon' ? 'soon' : ''}`}>{due.text}</span>}
-        <Avatar member={store.memberMap.get(task.assigneeEmail)} email={task.assigneeEmail || '?'} size={26} title={memberName(store, task.assigneeEmail)} />
+        <Assignees emails={assigneesOf(task)} />
       </span>
+    </div>
+  );
+}
+
+/** Overlapping faces of everyone on a task, three at most. */
+export function Assignees({ emails, size = 26 }: { emails: string[]; size?: number }) {
+  const store = useStore();
+  if (!emails.length) return <Avatar email="?" size={size} title="Nobody yet" />;
+  const shown = emails.slice(0, 3);
+  const names = emails.map((e) => memberName(store, e)).join(', ');
+  return (
+    <span className="avatar-stack" title={names} aria-label={`Assigned to ${names}`}>
+      {shown.map((e) => (
+        <Avatar key={e} member={store.memberMap.get(e)} email={e} size={size} title={memberName(store, e)} />
+      ))}
+      {emails.length > 3 && (
+        <span className="avatar avatar-more" style={{ ['--s' as string]: `${size}px` }}>
+          +{emails.length - 3}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Pick any number of people: chips for who is on it, and a list to add more. */
+export function PeoplePicker({ value, onChange, disabled, label }: { value: string[]; onChange: (v: string[]) => void; disabled?: boolean; label: string }) {
+  const store = useStore();
+  const rest = store.members.filter((m) => !value.includes(m.id));
+  return (
+    <div className="people-picker" role="group" aria-label={label}>
+      {value.map((e) => (
+        <span key={e} className="person-chip">
+          <Avatar member={store.memberMap.get(e)} email={e} size={22} />
+          <span className="ellipsis">
+            {memberName(store, e)}
+            {e === store.myEmail ? ' (you)' : ''}
+          </span>
+          {!disabled && (
+            <button type="button" aria-label={`Remove ${memberName(store, e)}`} onClick={() => onChange(value.filter((x) => x !== e))}>
+              <X size={14} />
+            </button>
+          )}
+        </span>
+      ))}
+      {!disabled && rest.length > 0 && (
+        <select
+          className="select select-sm person-add"
+          value=""
+          aria-label="Add a person"
+          onChange={(e) => {
+            if (e.target.value) onChange([...value, e.target.value]);
+          }}
+        >
+          <option value="">{value.length ? '+ Add someone' : 'Choose people'}</option>
+          {rest.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name || m.email}
+              {m.id === store.myEmail ? ' (you)' : ''}
+            </option>
+          ))}
+        </select>
+      )}
+      {disabled && !value.length && <span className="faint small">Nobody yet</span>}
     </div>
   );
 }
@@ -75,7 +143,8 @@ export function TaskForm({ task, defaults, onClose }: { task?: Task; defaults?: 
     title: task?.title ?? defaults?.title ?? '',
     notes: task?.notes ?? defaults?.notes ?? '',
     projectId: task?.projectId ?? defaults?.projectId ?? '',
-    assigneeEmail: task?.assigneeEmail ?? defaults?.assigneeEmail ?? store.myEmail,
+    assigneeEmail: '',
+    assigneeEmails: task ? assigneesOf(task) : defaults ? assigneesOf({ assigneeEmail: defaults.assigneeEmail ?? store.myEmail, assigneeEmails: defaults.assigneeEmails }) : [store.myEmail],
     dueDate: task?.dueDate ?? defaults?.dueDate ?? '',
     priority: task?.priority ?? defaults?.priority ?? 'med',
     status: task?.status ?? defaults?.status ?? 'todo',
@@ -90,7 +159,8 @@ export function TaskForm({ task, defaults, onClose }: { task?: Task; defaults?: 
 
   const save = async () => {
     if (!f.title.trim()) return;
-    const data = { ...f, title: f.title.trim(), assigneeEmail: canAssign ? f.assigneeEmail : store.myEmail };
+    const people = canAssign ? f.assigneeEmails ?? [] : [store.myEmail];
+    const data = { ...f, title: f.title.trim(), assigneeEmail: people[0] ?? '', assigneeEmails: people };
     const ok = await run(async () => {
       if (!task) await createTask(data);
       else if (statusOnly) await updateTask(task, { status: f.status });
@@ -151,17 +221,15 @@ export function TaskForm({ task, defaults, onClose }: { task?: Task; defaults?: 
             ))}
           </select>
         </Field>
-        <Field label="Assigned to" hint={!canAssign && editable ? 'Only exec members and project leads can assign tasks to other people.' : undefined}>
-          <select className="select" value={canAssign ? f.assigneeEmail : store.myEmail} onChange={(e) => set('assigneeEmail', e.target.value)} disabled={!editable || !canAssign}>
-            <option value="">Nobody yet</option>
-            {store.members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name || m.email}
-                {m.id === store.myEmail ? ' (you)' : ''}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <div className="field full">
+          <span>Assigned to</span>
+          <PeoplePicker label="Assigned to" value={canAssign ? f.assigneeEmails ?? [] : [store.myEmail]} onChange={(v) => set('assigneeEmails', v)} disabled={!editable || !canAssign} />
+          <small className="hint">
+            {!canAssign && editable
+              ? 'Only exec members and project leads can give tasks to other people.'
+              : 'Anyone on it can tick it off. Everyone you add gets an email about it.'}
+          </small>
+        </div>
         <Field label="Due">
           <input type="date" className="input" value={f.dueDate} onChange={(e) => set('dueDate', e.target.value)} disabled={!editable} />
         </Field>
@@ -251,9 +319,9 @@ export function TasksPage() {
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     return store.tasks
-      .filter((t) => (scope === 'mine' ? t.assigneeEmail === store.myEmail : true))
+      .filter((t) => (scope === 'mine' ? isAssigned(t, store.myEmail) : true))
       .filter((t) => !project || (project === '_none' ? !t.projectId : t.projectId === project))
-      .filter((t) => scope === 'mine' || !person || (person === '_none' ? !t.assigneeEmail : t.assigneeEmail === person))
+      .filter((t) => scope === 'mine' || !person || (person === '_none' ? !assigneesOf(t).length : isAssigned(t, person)))
       .filter((t) => !s || t.title.toLowerCase().includes(s) || t.notes?.toLowerCase().includes(s))
       .sort(sortTasks);
   }, [store.tasks, scope, project, person, q, store.myEmail]);
