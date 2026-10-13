@@ -200,6 +200,12 @@ service cloud.firestore {
         allow create: if canWriteFor(delivProject(id)) && request.resource.data.by == myEmail();
         allow delete: if isExec() || leads(delivProject(id));
       }
+      // who has it open right now; each person only writes their own entry
+      match /presence/{who} {
+        allow read: if canReadFor(delivProject(id));
+        allow create, update: if canReadFor(delivProject(id)) && who == myEmail() && request.resource.data.email == myEmail();
+        allow delete: if who == myEmail() || isExec() || leads(delivProject(id));
+      }
       match /comments/{cid} {
         allow read: if canReadFor(delivProject(id));
         allow create: if canReadFor(delivProject(id)) && request.resource.data.by == myEmail();

@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useStore, memberName } from '../../lib/store';
 import { log, saveRounds } from '../../lib/actions';
-import { canWriteDeliverables, repo, restoreVersion, saveVersion, STATUSES, STATUS_LABEL, useDeliverable } from '../../lib/deliverables';
+import { canWriteDeliverables, lockedBy, repo, restoreVersion, saveVersion, STATUSES, STATUS_LABEL, useDeliverable, usePresence, type Presence } from '../../lib/deliverables';
 import { checkDeliverable, cssFont, deliverableHTML, paraGapEm, PAPER, sortSections, type DocIssue } from '../../lib/docModel';
 import { DOC_FORMATS, FONTS, LINE_HEIGHTS, docJSON } from '../../lib/docTemplates';
 import { ago, fmtDate } from '../../lib/format';
@@ -138,6 +138,9 @@ function DocWorkspace({ p, d, sections, comments }: { p: Project; d: Deliverable
   const dl = due ? deadlineLabel(due) : null;
   const people = Array.from(new Set([p.leadEmail, ...(p.teamEmails ?? []), d.ownerEmail, me].filter(Boolean)));
   const openComments = comments.filter((c) => !c.resolved);
+  const here = usePresence(d.id, me, active?.sectionId);
+  const sectionTitle = (sid?: string) => sections.find((s) => s.id === sid)?.title ?? '';
+  const writingIn = (email: string) => sections.find((s) => s.lock?.email === email && lockedBy(s, me) === email);
   const issues = useMemo(() => checkDeliverable(d, sections), [d, sections]);
   const update = (patch: Partial<Deliverable>, ok?: string) => run(() => repo.update(d.id, { ...patch, updatedAt: Date.now(), updatedBy: me }), ok);
 
@@ -309,6 +312,7 @@ function DocWorkspace({ p, d, sections, comments }: { p: Project; d: Deliverable
           </div>
         </div>
         <div className="doc-head-actions">
+          {here.length > 0 && <HereNow people={here} nameOf={nameOf} sectionTitle={sectionTitle} writingIn={writingIn} />}
           {d.kind === 'doc' && (
             <>
               <button className={`btn ${showComments ? 'is-on' : ''}`} onClick={() => setShowComments((v) => !v)} aria-pressed={showComments}>
@@ -436,6 +440,13 @@ function DocWorkspace({ p, d, sections, comments }: { p: Project; d: Deliverable
                       {s.writerEmail && <Avatar member={store.memberMap.get(s.writerEmail)} email={s.writerEmail} size={20} title={`Written by ${nameOf(s.writerEmail)}`} />}
                       {st === 'saving' && <span className="dsec-state">Saving</span>}
                       {st === 'error' && <span className="dsec-state bad">Not saved</span>}
+                      {here
+                        .filter((x) => x.sectionId === s.id)
+                        .map((x) => (
+                          <span key={x.email} className="dsec-here" title={`${nameOf(x.email)} ${s.lock?.email === x.email && lockedBy(s, me) ? 'is writing here' : 'is looking at this section'}`}>
+                            <Avatar member={store.memberMap.get(x.email)} email={x.email} size={20} />
+                          </span>
+                        ))}
                       <span className="spacer" />
                       {n > 0 && (
                         <button className="dsec-c" onClick={() => setShowComments(true)} aria-label={`${n} open comments`}>
@@ -1009,5 +1020,48 @@ function ExportModal({ d, sections, issues, onClose }: { d: Deliverable; section
         </p>
       )}
     </Modal>
+  );
+}
+
+/* ---------- who else has it open ---------- */
+
+function HereNow({ people, nameOf, sectionTitle, writingIn }: { people: Presence[]; nameOf: (e: string) => string; sectionTitle: (sid?: string) => string; writingIn: (e: string) => DocSection | undefined }) {
+  const store = useStore();
+  const [open, setOpen] = useState(false);
+  const shown = people.slice(0, 4);
+  const line = (p: Presence) => {
+    const w = writingIn(p.email);
+    return w ? `writing in ${w.title}` : p.sectionId && sectionTitle(p.sectionId) ? `in ${sectionTitle(p.sectionId)}` : 'reading';
+  };
+  return (
+    <div className="here-now" onMouseLeave={() => setOpen(false)}>
+      <button
+        type="button"
+        className="here-faces"
+        aria-expanded={open}
+        aria-label={`${people.length} ${people.length === 1 ? 'person' : 'people'} here: ${people.map((p) => nameOf(p.email)).join(', ')}`}
+        onClick={() => setOpen((v) => !v)}
+        onMouseEnter={() => setOpen(true)}
+      >
+        {shown.map((p) => (
+          <span key={p.email} className={`here-face ${writingIn(p.email) ? 'writing' : ''}`}>
+            <Avatar member={store.memberMap.get(p.email)} email={p.email} size={30} title={`${nameOf(p.email)}, ${line(p)}`} />
+          </span>
+        ))}
+        {people.length > 4 && <span className="here-more">+{people.length - 4}</span>}
+      </button>
+      {open && (
+        <div className="here-pop" role="status">
+          <strong>Here now</strong>
+          {people.map((p) => (
+            <span key={p.email} className="here-row">
+              <Avatar member={store.memberMap.get(p.email)} email={p.email} size={22} />
+              <span className="ellipsis">{nameOf(p.email)}</span>
+              <span className="small faint">{line(p)}</span>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

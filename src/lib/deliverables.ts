@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, runTransaction, updateDoc, where, writeBatch, type DocumentData } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, runTransaction, setDoc, updateDoc, where, writeBatch, type DocumentData } from 'firebase/firestore';
 import { db } from './firebase';
 import { DEMO } from './store';
 import { log } from './actions';
@@ -46,7 +46,19 @@ interface Repo {
   addComment(id: string, c: Omit<DocComment, 'id'>): Promise<void>;
   updateComment(id: string, cid: string, patch: Partial<DocComment>): Promise<void>;
   removeComment(id: string, cid: string): Promise<void>;
+  watchPresence(id: string, cb: (list: Presence[]) => void): Unsub;
+  beat(id: string, p: Presence): Promise<void>;
+  leave(id: string, email: string): Promise<void>;
 }
+
+/** Someone with the document open. Refreshed every PRESENCE_BEAT_MS while the tab is visible. */
+export interface Presence {
+  email: string;
+  at: number;
+  sectionId?: string;
+}
+export const PRESENCE_BEAT_MS = 20_000;
+export const PRESENCE_STALE_MS = 60_000;
 
 const clean = <T extends object>(o: T) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 const withId = <T,>(d: { id: string; data: () => DocumentData }) => ({ id: d.id, ...(d.data() as object) }) as T;
@@ -97,7 +109,7 @@ const fire: Repo = {
     await updateDoc(doc(db, 'deliverables', id), clean(p) as DocumentData);
   },
   async remove(id) {
-    for (const sub of ['sections', 'comments', 'versions']) {
+    for (const sub of ['sections', 'comments', 'versions', 'presence']) {
       const s = await getDocs(collection(db, 'deliverables', id, sub));
       for (let i = 0; i < s.docs.length; i += 400) {
         const batch = writeBatch(db);
@@ -161,6 +173,15 @@ const fire: Repo = {
   async removeComment(id, cid) {
     await deleteDoc(doc(db, 'deliverables', id, 'comments', cid));
   },
+  watchPresence(id, cb) {
+    return onSnapshot(collection(db, 'deliverables', id, 'presence'), (s) => cb(s.docs.map((d) => d.data() as Presence)), () => cb([]));
+  },
+  async beat(id, p) {
+    await setDoc(doc(db, 'deliverables', id, 'presence', p.email), clean({ ...p, sectionId: p.sectionId ?? '' }));
+  },
+  async leave(id, email) {
+    await deleteDoc(doc(db, 'deliverables', id, 'presence', email)).catch(() => {});
+  },
 };
 
 /* ---------- in memory (demo) ---------- */
@@ -172,6 +193,7 @@ function memoryRepo(): Repo {
   const secs = new Map<string, Map<string, DocSection>>();
   const coms = new Map<string, Map<string, DocComment>>();
   const vers = new Map<string, DocVersion[]>();
+  const pres = new Map<string, Map<string, Presence>>();
   const subs = new Set<() => void>();
   const emit = () => setTimeout(() => subs.forEach((f) => f()), 0);
   const watch = (f: () => void): Unsub => {
@@ -259,6 +281,20 @@ function memoryRepo(): Repo {
     },
     async removeComment(id, cid) {
       com(id).delete(cid);
+      emit();
+    },
+    watchPresence: (id, cb) =>
+      watch(() => {
+        // the demo has one real person, so a teammate is shown as if they had it open too
+        const fake: Presence[] = [{ email: 'linh@school.vn', at: Date.now(), sectionId: [...sec(id).values()].sort((a, b) => a.order - b.order)[1]?.id ?? '' }];
+        cb([...(pres.get(id)?.values() ?? []), ...fake]);
+      }),
+    async beat(id, p) {
+      (pres.get(id) ?? pres.set(id, new Map()).get(id)!).set(p.email, p);
+      emit();
+    },
+    async leave(id, email) {
+      pres.get(id)?.delete(email);
       emit();
     },
   };
@@ -384,4 +420,40 @@ export async function imageToDataURL(file: File, maxW = 1400): Promise<string> {
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+/** Who else has this document open right now, and keep our own entry fresh. */
+export function usePresence(id: string, me: string, sectionId: string | undefined, enabled = true): Presence[] {
+  const [list, setList] = useState<Presence[]>([]);
+  const [, tick] = useState(0);
+  useEffect(() => (enabled ? repo.watchPresence(id, setList) : undefined), [id, enabled]);
+  useEffect(() => {
+    if (!enabled || !me) return;
+    const beat = () => {
+      if (document.visibilityState === 'visible') void repo.beat(id, { email: me, at: Date.now(), sectionId }).catch(() => {});
+    };
+    beat();
+    const h = window.setInterval(beat, PRESENCE_BEAT_MS);
+    document.addEventListener('visibilitychange', beat);
+    return () => {
+      window.clearInterval(h);
+      document.removeEventListener('visibilitychange', beat);
+    };
+  }, [id, me, sectionId, enabled]);
+  useEffect(() => {
+    if (!enabled || !me) return;
+    const bye = () => void repo.leave(id, me);
+    window.addEventListener('pagehide', bye);
+    return () => {
+      window.removeEventListener('pagehide', bye);
+      bye();
+    };
+  }, [id, me, enabled]);
+  // re-check every 15 s so people who closed the tab without saying goodbye drop off
+  useEffect(() => {
+    const h = window.setInterval(() => tick((n) => n + 1), 15_000);
+    return () => window.clearInterval(h);
+  }, []);
+  const now = Date.now();
+  return list.filter((p) => p.email !== me && now - p.at < PRESENCE_STALE_MS).sort((a, b) => a.email.localeCompare(b.email));
 }
