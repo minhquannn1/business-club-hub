@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Evaluator, parseLooseNumber, shiftFormula, isErr, colToLetters, lettersToCol, adjustRefs, offsetAllRows, type EngineSheet } from './formula';
+import { Evaluator, parseAmountInput, parseLooseNumber, shiftFormula, isErr, colToLetters, lettersToCol, adjustRefs, offsetAllRows, type EngineSheet } from './formula';
 
 function sheet(name: string, grid: string[][]): EngineSheet {
   return {
@@ -14,6 +14,20 @@ function evalIn(grid: string[][], r: number, c: number, extra: EngineSheet[] = [
   const ev = new Evaluator({ sheets: [sheet('Main', grid), ...extra], today: '2026-10-10' });
   return ev.value(0, r, c);
 }
+
+describe('short amounts', () => {
+  it('reads 50k, 1.5tr, 2m and 1 tỷ when typed into an amount', () => {
+    expect(parseAmountInput('50k')).toBe(50_000);
+    expect(parseAmountInput('50K')).toBe(50_000);
+    expect(parseAmountInput('1.5tr')).toBe(1_500_000);
+    expect(parseAmountInput('1,5 triệu')).toBe(1_500_000);
+    expect(parseAmountInput('2m')).toBe(2_000_000);
+    expect(parseAmountInput('1 tỷ')).toBe(1_000_000_000);
+    expect(parseAmountInput('250k ₫')).toBe(250_000);
+    expect(parseAmountInput('abc')).toBeNull();
+    expect(parseAmountInput('1.250.000')).toBe(1_250_000);
+  });
+});
 
 describe('numbers', () => {
   it('parses VND and US formats', () => {

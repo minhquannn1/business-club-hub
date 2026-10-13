@@ -52,7 +52,23 @@ export function demoData() {
   ];
   const cols = ledgerColumns();
   const k = Object.fromEntries(cols.map((c) => [c.role ?? c.key, c.key]));
-  const sheets: Sheet[] = [{ id: 'ledger', name: 'Ledger', order: 0, isLedger: true, columns: cols, createdAt: now, createdBy: OWNER_EMAIL }];
+  const budgetCols: Sheet['columns'] = [
+    { key: 'item', name: 'Item', type: 'text', width: 200 },
+    { key: 'qty', name: 'Qty', type: 'number', width: 80 },
+    { key: 'price', name: 'Unit price', type: 'currency', width: 130 },
+    { key: 'cost', name: 'Cost', type: 'currency', width: 140, calc: { op: 'mul', a: 'qty', b: 'price' } },
+    { key: 'spent', name: 'Spent so far', type: 'currency', width: 140, calc: { op: 'running', a: 'cost' } },
+  ];
+  const sheets: Sheet[] = [
+    { id: 'ledger', name: 'Ledger', order: 0, isLedger: true, columns: cols, createdAt: now, createdBy: OWNER_EMAIL },
+    { id: 'budget', name: 'Booth budget', order: 1, isLedger: false, columns: budgetCols, createdAt: now, createdBy: OWNER_EMAIL },
+  ];
+  const budgetRows: Row[] = [
+    ['Cookies (box)', '12', '85000'],
+    ['Lemonade (jug)', '6', '60000'],
+    ['Paper cups', '200', '500'],
+    ['Table cloth', '2', '120000'],
+  ].map(([item, qty, price], i) => ({ id: 'b' + i, order: (i + 1) * 1024, cells: { item, qty, price }, updatedAt: now }));
   const r = (i: number, cells: Record<string, string>): Row => ({ id: 'r' + i, order: (i + 1) * 1024, cells, updatedAt: now - i * 60000, updatedBy: 'linh@school.vn' });
   const rowsList: Row[] = [
     r(0, { [k.date]: d(-40), [k.description]: 'School club funding', [k.direction]: 'In', [k.category]: 'School funding', [k.amount]: '5000000', [k.payer]: 'linh@school.vn' }),
@@ -80,5 +96,5 @@ export function demoData() {
   const announcements = [
     { id: 'an1', title: 'Sport Day booth: meet at 7:15 by the gym', body: 'Bring your club shirt. Ice and drinks arrive at 7:30, so we set up the tables first.\nThe cash float is with An.', audience: 'all', createdBy: OWNER_EMAIL, createdAt: now - 2 * 3600e3, emailedAt: now - 2 * 3600e3, recipientCount: 5 },
   ];
-  return { members, projects, tasks, meetings, sheets, rows: rowsList.map((row) => ({ sheetId: 'ledger', row })), activity, announcements };
+  return { members, projects, tasks, meetings, sheets, rows: [...rowsList.map((row) => ({ sheetId: 'ledger', row })), ...budgetRows.map((row) => ({ sheetId: 'budget', row }))], activity, announcements };
 }

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { Evaluator, defaultLiteral, isErr, parseLooseNumber, type EngineSheet, type Scalar } from './formula';
-import type { Column, Row, Sheet } from './types';
+import { Evaluator, colToLetters, defaultLiteral, isErr, parseLooseNumber, type EngineSheet, type Scalar } from './formula';
+import type { CalcOp, Column, ColumnCalc, Row, Sheet } from './types';
 import { useStore } from './store';
 
 export function literalFor(col: Column | undefined, raw: string): Scalar {
@@ -15,13 +15,89 @@ export function literalFor(col: Column | undefined, raw: string): Scalar {
   return defaultLiteral(raw);
 }
 
+export const CALC_LABEL: Record<CalcOp, string> = {
+  mul: 'multiplied by',
+  add: 'plus',
+  sub: 'minus',
+  div: 'divided by',
+  running: 'Running total of',
+  balance: 'Running balance (money in minus money out)',
+};
+
+/** Plain-language description of a calculated column, e.g. "Quantity × Unit cost". */
+export function describeCalc(sheet: Sheet, calc: ColumnCalc): string {
+  const name = (key?: string) => {
+    const i = sheet.columns.findIndex((c) => c.key === key);
+    return i < 0 ? '?' : sheet.columns[i].name || `column ${colToLetters(i)}`;
+  };
+  switch (calc.op) {
+    case 'mul':
+      return `${name(calc.a)} × ${name(calc.b)}`;
+    case 'add':
+      return `${name(calc.a)} + ${name(calc.b)}`;
+    case 'sub':
+      return `${name(calc.a)} − ${name(calc.b)}`;
+    case 'div':
+      return `${name(calc.a)} ÷ ${name(calc.b)}`;
+    case 'running':
+      return `Running total of ${name(calc.a)}`;
+    case 'balance':
+      return 'Running balance: money in minus money out';
+  }
+}
+
+/** The formula a calculated column stands for in row r, or '' when the row is empty. */
+export function calcFormula(sheet: Sheet, rows: Row[], r: number, calc: ColumnCalc): string {
+  const cols = sheet.columns;
+  const idx = (key?: string) => cols.findIndex((c) => c.key === key);
+  const cell = (i: number) => (i < 0 ? '' : rows[r]?.cells?.[cols[i].key] ?? '');
+  const L = (i: number) => colToLetters(i);
+  const n = r + 1;
+  const rowHasData = Object.entries(rows[r]?.cells ?? {}).some(([k, v]) => v && !cols.find((c) => c.key === k)?.calc);
+  switch (calc.op) {
+    case 'mul':
+    case 'add':
+    case 'sub':
+    case 'div': {
+      const ia = idx(calc.a);
+      const ib = idx(calc.b);
+      if (ia < 0 || ib < 0 || (!cell(ia) && !cell(ib))) return '';
+      const a = `${L(ia)}${n}`;
+      const b = `${L(ib)}${n}`;
+      if (calc.op === 'div') return `=IFERROR(${a}/${b},"")`;
+      return `=${a}${calc.op === 'mul' ? '*' : calc.op === 'add' ? '+' : '-'}${b}`;
+    }
+    case 'running': {
+      const ia = idx(calc.a);
+      if (ia < 0 || !rowHasData) return '';
+      return `=SUM(${L(ia)}$1:${L(ia)}${n})`;
+    }
+    case 'balance': {
+      const id = cols.findIndex((c) => c.role === 'direction');
+      const im = cols.findIndex((c) => c.role === 'amount');
+      if (id < 0 || im < 0 || !rowHasData) return '';
+      const d = `${L(id)}$1:${L(id)}${n}`;
+      const m = `${L(im)}$1:${L(im)}${n}`;
+      return `=SUMIF(${d},"In",${m})-SUMIF(${d},"Out",${m})`;
+    }
+  }
+}
+
+/** What a cell holds: what was typed, or the formula of its calculated column. */
+export function cellRaw(sheet: Sheet, rows: Row[], r: number, c: number): string {
+  const col = sheet.columns[c];
+  if (!col) return '';
+  if (col.calc) return calcFormula(sheet, rows, r, col.calc);
+  return rows[r]?.cells?.[col.key] ?? '';
+}
+
 export function toEngineSheet(sheet: Sheet, rows: Row[]): EngineSheet {
   return {
     id: sheet.id,
     name: sheet.name,
     colCount: sheet.columns.length,
     rowCount: rows.length,
-    raw: (r, c) => rows[r]?.cells?.[sheet.columns[c]?.key] ?? '',
+    raw: (r, c) => cellRaw(sheet, rows, r, c),
     parseLiteral: (raw, c) => literalFor(sheet.columns[c], raw),
   };
 }

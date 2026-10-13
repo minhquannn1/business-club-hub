@@ -14,14 +14,18 @@ import {
   X,
   ArrowLeftToLine,
   ArrowRightToLine,
+  Calculator,
+  ChevronDown,
+  Sigma,
 } from 'lucide-react';
 import { format, parse, isValid } from 'date-fns';
 import { useStore, memberName } from '../lib/store';
 import { addRows, compressImage, deleteRows, loadReceipt, reorderRows, saveReceipt, updateSheet, writeCells, type CellWrite } from '../lib/actions';
-import { adjustRefs, cellName, colToLetters, isErr, shiftFormula, FErr, type Scalar } from '../lib/formula';
-import { useWorkbook } from '../lib/workbook';
+import { adjustRefs, cellName, colToLetters, isErr, parseAmountInput, shiftFormula, FErr, type Scalar } from '../lib/formula';
+import { cellRaw, describeCalc, useWorkbook } from '../lib/workbook';
+import { EMPTY_FILTER, FilterModal, SummaryModal, TOTAL_LABEL, columnTotal, defaultTotal, filterActive, fmtFor, totalChoices, type Filt } from './sheetTools';
 import { ago, fmtDate, money, plainNumber, uid } from '../lib/format';
-import type { ColRole, ColType, Column, Row, Sheet } from '../lib/types';
+import type { CalcOp, ColRole, ColType, Column, ColumnTotal, Row, Sheet } from '../lib/types';
 import { Field, Modal, useConfirm, useMenu, useRun, useToast } from '../components/ui';
 import '../styles/sheet.css';
 
@@ -131,7 +135,8 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
   const [h, setH] = useState<Pos>({ r: 0, c: 0 }); // moving corner
   const [editing, setEditing] = useState<Editing | null>(null);
   const [widths, setWidths] = useState<Record<string, number>>({});
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [filters, setFilters] = useState<Record<string, Filt>>({});
+  const [summary, setSummary] = useState<string | null>(null); // column key to group by, '' = pick
   const [fillTo, setFillTo] = useState<Pos | null>(null);
   const [colModal, setColModal] = useState<number | null>(null);
   const [filterModal, setFilterModal] = useState<number | null>(null);
@@ -156,7 +161,7 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
   }, [sheet.id]);
 
   const width = (c: Column) => widths[c.key] ?? c.width ?? 120;
-  const raw = useCallback((r: number, c: number) => rows[r]?.cells?.[cols[c]?.key] ?? '', [rows, cols]);
+  const raw = useCallback((r: number, c: number) => cellRaw(sheet, rows, r, c), [rows, sheet]);
   const value = useCallback((r: number, c: number): Scalar => wb.value(sheet.id, r, c), [wb, sheet.id]);
 
   const displayText = useCallback(
@@ -177,7 +182,7 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
   );
 
   const visible = useMemo(() => {
-    const active = Object.entries(filters).filter(([, f]) => f.trim());
+    const active = Object.entries(filters).filter(([, f]) => f.text.trim() || f.values.length);
     if (!active.length) return rows.map((_, i) => i);
     return rows
       .map((_, i) => i)
@@ -185,7 +190,8 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
         active.every(([key, f]) => {
           const c = cols.findIndex((x) => x.key === key);
           if (c < 0) return true;
-          const needle = f.trim().toLowerCase();
+          if (f.values.length) return f.values.includes(displayText(i, c));
+          const needle = f.text.trim().toLowerCase();
           return displayText(i, c).toLowerCase().includes(needle) || raw(i, c).toLowerCase().includes(needle);
         }),
       );
@@ -217,6 +223,11 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
       const t = s.trim();
       if (!t) return '';
       if (col.type === 'date') return normalizeDate(t);
+      // 50k, 1.5tr, 2m: store the full number
+      if (NUMERIC.includes(col.type) && /[a-zà-ỹ]$/i.test(t)) {
+        const n = parseAmountInput(t);
+        if (n !== null) return String(n);
+      }
       if (col.type === 'project') {
         if (store.projectMap.has(t)) return t;
         const p = store.projects.find((x) => x.title.toLowerCase() === t.toLowerCase());
@@ -244,7 +255,7 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
       const extra: Record<number, Record<string, string>> = {};
       for (const w of list) {
         const col = cols[w.c];
-        if (!col) continue;
+        if (!col || col.calc) continue;
         const v = normalize(col, w.value);
         const row = rows[w.r];
         if (!row) {
@@ -288,6 +299,10 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
     const col = cols[p.c];
     if (col.type === 'receipt') {
       openReceipt(p);
+      return;
+    }
+    if (col.calc) {
+      toast(`${col.name || 'This column'} works itself out: ${describeCalc(sheet, col.calc)}. Change it with Edit column.`);
       return;
     }
     setEditing({ r: p.r, c: p.c, mode, from, value: initial ?? raw(p.r, p.c) });
@@ -731,6 +746,7 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
     menu.open(e instanceof HTMLElement ? e : (e as RMouseEvent), [
       ...(canEdit ? [{ label: 'Edit column', icon: <Settings2 />, onSelect: () => setColModal(c) }] : []),
       { label: 'Filter by this column', icon: <Filter />, onSelect: () => setFilterModal(c) },
+      ...(!['number', 'currency', 'receipt'].includes(cols[c].type) ? [{ label: 'Summarise by this column', icon: <Sigma />, onSelect: () => setSummary(cols[c].key) }] : []),
       ...(canEdit
         ? [
             { label: 'Sort sheet A to Z', icon: <ArrowDownAZ />, onSelect: () => sortBy(c, 1), divider: true },
@@ -771,7 +787,7 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
   const activeRaw = raw(a.r, a.c);
   const activeVal = rows.length ? value(a.r, a.c) : null;
   const barValue = editing ? editing.value : activeRaw;
-  const filterList = Object.entries(filters).filter(([, v]) => v.trim());
+  const filterList = Object.entries(filters).filter(([, v]) => filterActive(v));
   const totalWidth = 46 + cols.reduce((s, c) => s + width(c), 0);
 
   const renderCell = (r: number, c: number) => {
@@ -862,17 +878,28 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
             <Undo2 /> Undo
           </button>
         )}
+        <button className="btn btn-sm btn-ghost" onClick={() => setSummary('')} title="Totals per category, project, person or month, without formulas">
+          <Sigma /> Summarise
+        </button>
         {filterList.map(([key, f]) => {
           const c = cols.findIndex((x) => x.key === key);
+          const what = f.values.length ? (f.values.length <= 2 ? f.values.map((v) => v || '(empty)').join(' or ') : `${f.values.length} values`) : `contains "${f.text}"`;
           return (
             <span key={key} className="filter-pill">
-              {cols[c]?.name || colToLetters(c)} contains "{f}"
-              <button onClick={() => setFilters((x) => ({ ...x, [key]: '' }))} aria-label="Remove filter">
+              <button className="filter-pill-edit" onClick={() => setFilterModal(c)}>
+                {cols[c]?.name || colToLetters(c)}: {what}
+              </button>
+              <button onClick={() => setFilters((x) => ({ ...x, [key]: EMPTY_FILTER }))} aria-label="Remove filter">
                 <X size={14} />
               </button>
             </span>
           );
         })}
+        {filterList.length > 1 && (
+          <button className="btn btn-xs btn-ghost" onClick={() => setFilters({})}>
+            Clear all
+          </button>
+        )}
         <span style={{ flex: 1 }} />
         {!canEdit && <span className="small faint">View only. The people in charge of money edit it.</span>}
       </div>
@@ -881,8 +908,8 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
         <div className="fbar-fx">fx</div>
         <input
           ref={barRef}
-          value={barValue}
-          disabled={!canEdit || !rows.length || cols[a.c]?.type === 'receipt'}
+          value={cols[a.c]?.calc ? `Worked out for you: ${describeCalc(sheet, cols[a.c].calc!)}` : barValue}
+          disabled={!canEdit || !rows.length || cols[a.c]?.type === 'receipt' || !!cols[a.c]?.calc}
           aria-label="Cell contents"
           onFocus={() => {
             if (!editing && canEdit) setEditing({ r: a.r, c: a.c, mode: 'edit', from: 'bar', value: activeRaw });
@@ -905,7 +932,7 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
           onBlur={(e) => {
             if (editing?.from === 'bar' && !scrollRef.current?.contains(e.relatedTarget as Node)) finishEdit();
           }}
-          placeholder={canEdit ? 'Type a value, or a formula like =SUM(F1:F30)' : ''}
+          placeholder={canEdit ? 'Type a value (50k and 1.5tr work for amounts), or a formula like =SUM(F1:F30)' : ''}
         />
       </div>
       <div ref={scrollRef} className="grid-scroll" tabIndex={0} onKeyDown={onKeyDown} onCopy={(e) => onCopy(e)} onCut={(e) => onCopy(e, true)} onPaste={onPaste} style={{ scrollPadding: '44px 0 0 46px' }} aria-label={`${sheet.name} grid`}>
@@ -938,9 +965,22 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
                     <span className="letter">{colToLetters(c)}</span>
                     <span className="name">
                       {col.name || <span className="faint">&nbsp;</span>}
-                      {filters[col.key]?.trim() && <Filter />}
+                      {filterActive(filters[col.key]) && <Filter />}
+                      {col.calc && <Calculator className="calc-mark" aria-label="Calculated" />}
                     </span>
                   </div>
+                  <button
+                    type="button"
+                    className="col-menu-btn"
+                    aria-label={`${col.name || `Column ${colToLetters(c)}`} options`}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      colMenu(e.currentTarget, c);
+                    }}
+                  >
+                    <ChevronDown />
+                  </button>
                   <span
                     className={`col-resize ${resize.current?.key === col.key ? 'active' : ''}`}
                     onMouseDown={(e) => {
@@ -976,6 +1016,40 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
               </tr>
             ))}
           </tbody>
+          <tfoot>
+            <tr className="totals-row">
+              <td className="rn" title={filterList.length ? 'Totals of the rows shown' : 'Totals'}>
+                <Sigma />
+              </td>
+              {cols.map((col, c) => {
+                const kind = defaultTotal(sheet, col);
+                const dirC = cols.findIndex((x) => x.role === 'direction');
+                const t = kind === 'none' ? { value: null } : columnTotal(kind, visible.map((r) => ({ v: value(r, c), raw: raw(r, c), dir: dirC >= 0 ? displayText(r, dirC) : '' })), colToLetters(c));
+                const label = t.value === null ? '' : fmtFor(col, t.value, kind);
+                const title = kind === 'net' && 'inSum' in t ? `In ${money(t.inSum ?? 0)}, out ${money(t.outSum ?? 0)}` : kind !== 'none' ? `${TOTAL_LABEL[kind]} of ${visible.length} rows` : canEdit ? 'Pick a total for this column' : undefined;
+                const pick = (el: HTMLElement) =>
+                  canEdit &&
+                  menu.open(
+                    el,
+                    totalChoices(sheet, col).map((k) => ({
+                      label: `${k === kind ? '✓ ' : ''}${TOTAL_LABEL[k]}`,
+                      onSelect: () => void run(() => updateSheet(sheet.id, { columns: cols.map((x, i) => (i === c ? { ...x, total: k } : x)) }, sheet.name)),
+                    })),
+                  );
+                return (
+                  <td key={col.key} className={`total-cell ${NUMERIC.includes(col.type) || kind === 'count' ? 'right' : ''} ${canEdit ? 'pickable' : ''}`} title={title} onClick={(e) => pick(e.currentTarget)}>
+                    {kind !== 'none' && t.value !== null ? (
+                      <>
+                        <span className="total-kind">{kind === 'net' ? 'Net' : TOTAL_LABEL[kind]}</span> <strong className={`num ${t.value < 0 ? 'neg' : ''}`}>{label}</strong>
+                      </>
+                    ) : canEdit && col.type !== 'receipt' ? (
+                      <span className="total-add">+ Total</span>
+                    ) : null}
+                  </td>
+                );
+              })}
+            </tr>
+          </tfoot>
         </table>
         {visible.length === 0 && rows.length > 0 && <p className="small muted" style={{ padding: '16px 56px' }}>No rows match the filter.</p>}
         {canEdit && (
@@ -1054,7 +1128,16 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
         <FilterModal
           col={cols[filterModal]}
           letter={colToLetters(filterModal)}
-          value={filters[cols[filterModal].key] ?? ''}
+          options={(() => {
+            const m = new Map<string, number>();
+            rows.forEach((row, r) => {
+              if (!Object.values(row.cells ?? {}).some(Boolean)) return;
+              const k = displayText(r, filterModal);
+              m.set(k, (m.get(k) ?? 0) + 1);
+            });
+            return NUMERIC.includes(cols[filterModal].type) && m.size > 30 ? [] : [...m.entries()].sort((x, y) => x[0].localeCompare(y[0], undefined, { numeric: true })).map(([label, count]) => ({ label, count }));
+          })()}
+          value={filters[cols[filterModal].key] ?? EMPTY_FILTER}
           onClose={() => setFilterModal(null)}
           onApply={(v) => {
             setFilters((f) => ({ ...f, [cols[filterModal].key]: v }));
@@ -1062,6 +1145,7 @@ export function SheetGrid({ sheet, onRecord }: { sheet: Sheet; onRecord?: (dir: 
           }}
         />
       )}
+      {summary !== null && <SummaryModal sheet={sheet} rows={visible} groupKey={summary} displayText={displayText} value={value} onClose={() => setSummary(null)} />}
       {menu.node}
     </div>
   );
@@ -1221,10 +1305,30 @@ function ColumnModal({ sheet, index, onClose }: { sheet: Sheet; index: number; o
   const [type, setType] = useState<ColType>(col.type);
   const [options, setOptions] = useState((col.options ?? []).join('\n'));
   const [role, setRole] = useState<ColRole>(col.role ?? '');
+  const [mode, setMode] = useState<'typed' | 'calc'>(col.calc ? 'calc' : 'typed');
+  const [op, setOp] = useState<CalcOp>(col.calc?.op ?? 'mul');
+  const others = sheet.columns.map((c, i) => ({ c, i })).filter(({ c, i }) => i !== index && (c.type === 'number' || c.type === 'currency'));
+  const [ca, setCa] = useState(col.calc?.a ?? others[0]?.c.key ?? '');
+  const [cb, setCb] = useState(col.calc?.b ?? others[1]?.c.key ?? others[0]?.c.key ?? '');
+  const [total, setTotal] = useState<ColumnTotal | ''>(col.total ?? '');
+  const hasLedgerCols = sheet.columns.some((c) => c.role === 'direction') && sheet.columns.some((c) => c.role === 'amount');
+  const needsTwo = op === 'mul' || op === 'add' || op === 'sub' || op === 'div';
+  const calcOk = mode === 'typed' || (op === 'balance' ? hasLedgerCols : needsTwo ? !!ca && !!cb : !!ca);
   const save = async () => {
-    const next: Column = { ...col, name: name.trim(), type, role: role || undefined, options: type === 'select' ? options.split('\n').map((s) => s.trim()).filter(Boolean) : undefined };
+    const calc = mode === 'calc' ? (op === 'balance' ? { op } : needsTwo ? { op, a: ca, b: cb } : { op, a: ca }) : undefined;
+    const next: Column = {
+      ...col,
+      name: name.trim(),
+      type: mode === 'calc' && !NUMERIC.includes(type) ? 'currency' : type,
+      role: role || undefined,
+      options: type === 'select' ? options.split('\n').map((s) => s.trim()).filter(Boolean) : undefined,
+      calc,
+      total: total || undefined,
+    };
     if (!next.role) delete next.role;
     if (!next.options) delete next.options;
+    if (!next.calc) delete next.calc;
+    if (!next.total) delete next.total;
     const columns = sheet.columns.map((c, i) => (i === index ? next : role && c.role === role ? { ...c, role: undefined } : c)).map((c) => {
       const x = { ...c };
       if (!x.role) delete x.role;
@@ -1246,7 +1350,7 @@ function ColumnModal({ sheet, index, onClose }: { sheet: Sheet; index: number; o
           <button className="btn" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn-primary" onClick={save}>
+          <button className="btn btn-primary" onClick={save} disabled={!calcOk}>
             Save column
           </button>
         </>
@@ -1263,6 +1367,75 @@ function ColumnModal({ sheet, index, onClose }: { sheet: Sheet; index: number; o
                 {t.label}
               </option>
             ))}
+          </select>
+        </Field>
+        {type !== 'receipt' && (
+          <div className="field">
+            <span>Cells</span>
+            <div className="seg" role="group" aria-label="How cells get their value">
+              <button type="button" aria-pressed={mode === 'typed'} onClick={() => setMode('typed')}>
+                <span>Typed in</span>
+              </button>
+              <button
+                type="button"
+                aria-pressed={mode === 'calc'}
+                onClick={() => {
+                  setMode('calc');
+                  if (!NUMERIC.includes(type)) setType('currency');
+                }}
+              >
+                <span>Worked out for you</span>
+              </button>
+            </div>
+            {mode === 'calc' && (
+              <div className="calc-builder">
+                <select className="select" value={op} onChange={(e) => setOp(e.target.value as CalcOp)} aria-label="Calculation">
+                  <option value="mul">One column × another (e.g. Quantity × Unit cost)</option>
+                  <option value="add">One column + another</option>
+                  <option value="sub">One column − another</option>
+                  <option value="div">One column ÷ another</option>
+                  <option value="running">Running total of a column</option>
+                  {hasLedgerCols && <option value="balance">Running balance (money in minus money out)</option>}
+                </select>
+                {op !== 'balance' && (
+                  <div className="calc-row">
+                    <select className="select" value={ca} onChange={(e) => setCa(e.target.value)} aria-label="First column">
+                      {others.map(({ c, i }) => (
+                        <option key={c.key} value={c.key}>
+                          {c.name || `Column ${colToLetters(i)}`}
+                        </option>
+                      ))}
+                    </select>
+                    {needsTwo && (
+                      <>
+                        <span className="calc-op">{op === 'mul' ? '×' : op === 'add' ? '+' : op === 'sub' ? '−' : '÷'}</span>
+                        <select className="select" value={cb} onChange={(e) => setCb(e.target.value)} aria-label="Second column">
+                          {others.map(({ c, i }) => (
+                            <option key={c.key} value={c.key}>
+                              {c.name || `Column ${colToLetters(i)}`}
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    )}
+                  </div>
+                )}
+                {!others.length && op !== 'balance' && <small className="hint neg">Set another column's type to Number or Money first.</small>}
+                <small className="hint">Every row works it out by itself, new rows too. Nobody needs to copy a formula down. Anything typed in this column before is kept but hidden.</small>
+              </div>
+            )}
+          </div>
+        )}
+        <Field label="Totals row shows" hint="The row under the sheet. You can also click it to change this.">
+          <select className="select" value={total} onChange={(e) => setTotal(e.target.value as ColumnTotal | '')}>
+            <option value="">Automatic</option>
+            {(['sum', 'avg', 'min', 'max', 'count', 'net', 'none'] as ColumnTotal[])
+              .filter((k) => k !== 'net' || (sheet.isLedger && (role === 'amount' || col.role === 'amount')))
+              .map((k) => (
+                <option key={k} value={k}>
+                  {TOTAL_LABEL[k]}
+                </option>
+              ))}
           </select>
         </Field>
         {type === 'select' && (
@@ -1283,41 +1456,6 @@ function ColumnModal({ sheet, index, onClose }: { sheet: Sheet; index: number; o
           </Field>
         )}
       </div>
-    </Modal>
-  );
-}
-
-function FilterModal({ col, letter, value, onClose, onApply }: { col: Column; letter: string; value: string; onClose: () => void; onApply: (v: string) => void }) {
-  const [v, setV] = useState(value);
-  return (
-    <Modal
-      title={`Filter ${col.name || `column ${letter}`}`}
-      size="narrow"
-      onClose={onClose}
-      footer={
-        <>
-          {value && (
-            <button className="btn" onClick={() => onApply('')}>
-              Clear filter
-            </button>
-          )}
-          <span className="spacer" />
-          <button className="btn btn-primary" onClick={() => onApply(v)}>
-            Apply
-          </button>
-        </>
-      }
-    >
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          onApply(v);
-        }}
-      >
-        <Field label="Show rows where this column contains" hint="Only changes what you see. Other people's view is untouched.">
-          <input className="input" value={v} onChange={(e) => setV(e.target.value)} autoFocus />
-        </Field>
-      </form>
     </Modal>
   );
 }

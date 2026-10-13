@@ -3,7 +3,7 @@ import { Paperclip } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { addRows, compressImage, createSheet, ledgerColumns, saveReceipt, writeCells } from '../lib/actions';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../lib/constants';
-import { parseLooseNumber } from '../lib/formula';
+import { parseAmountInput } from '../lib/formula';
 import { getCurrency, todayISO } from '../lib/format';
 import { Field, Modal, Seg, useRun } from '../components/ui';
 import type { Sheet } from '../lib/types';
@@ -19,7 +19,7 @@ export function LedgerEntryForm({ projectId = '', direction = 'out', onClose }: 
   const [receipt, setReceipt] = useState<{ dataUrl: string; name: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const amount = parseLooseNumber(f.amt);
+  const amount = parseAmountInput(f.amt);
   const set = (k: keyof typeof f, v: string) => setF((x) => ({ ...x, [k]: v }));
   const cats = dir === 'in' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
@@ -98,8 +98,11 @@ export function LedgerEntryForm({ projectId = '', direction = 'out', onClose }: 
         <Field label="What for" className="full">
           <input className="input" value={f.desc} onChange={(e) => set('desc', e.target.value)} placeholder={dir === 'in' ? 'e.g. Sponsorship from a local café' : 'e.g. Printing 200 flyers'} />
         </Field>
-        <Field label={`Amount (${getCurrency()})`} hint={f.amt && amount === null ? <span className="neg">Type a number, like 350,000</span> : undefined}>
-          <input className="input num" inputMode="decimal" value={f.amt} onChange={(e) => set('amt', e.target.value)} placeholder="0" />
+        <Field
+          label={`Amount (${getCurrency()})`}
+          hint={f.amt && amount === null ? <span className="neg">Type a number, like 350,000 or 350k</span> : amount !== null && /[a-zà-ỹ]/i.test(f.amt) ? `= ${amount.toLocaleString('vi-VN')}` : 'Short forms work: 350k, 1.5tr, 2m'}
+        >
+          <input className="input num" inputMode="text" value={f.amt} onChange={(e) => set('amt', e.target.value)} placeholder="0" />
         </Field>
         <Field label="Date">
           <input type="date" className="input" value={f.date} onChange={(e) => set('date', e.target.value)} />

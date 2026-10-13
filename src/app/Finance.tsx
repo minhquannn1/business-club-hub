@@ -4,7 +4,7 @@ import { BookOpen, Download, MoreHorizontal, Pencil, Plus, Table2, Trash2, Uploa
 import { useStore, memberName } from '../lib/store';
 import { createSheet, deleteSheet, importEvents, updateSheet, type ImportedEvent } from '../lib/actions';
 import { fmtDate, money } from '../lib/format';
-import { useLedger, useWorkbook } from '../lib/workbook';
+import { cellRaw, useLedger, useWorkbook } from '../lib/workbook';
 import { financeStats } from '../lib/financeStats';
 import { BalanceChart, Kpi, MonthlyChart, PLTable, ShareList, pct } from './financeCharts';
 import { colToLetters, isErr, offsetAllRows, FUNCTIONS } from '../lib/formula';
@@ -37,10 +37,10 @@ export function FinancePage() {
       store.sheets.forEach((s, si) => {
         const rows = store.rows.get(s.id) ?? [];
         const aoa: unknown[][] = [s.columns.map((c, i) => c.name || colToLetters(i))];
-        rows.forEach((row, r) => {
+        rows.forEach((_row, r) => {
           aoa.push(
             s.columns.map((c, ci) => {
-              const raw = row.cells?.[c.key] ?? '';
+              const raw = cellRaw(s, rows, r, ci);
               const v = wb.evaluator.value(si, r, ci);
               const shown = isErr(v) ? v.code : c.type === 'project' && typeof v === 'string' ? store.projectMap.get(v)?.title ?? v : c.type === 'member' && typeof v === 'string' ? memberName(store, v) : v;
               if (raw.startsWith('=')) return { f: offsetAllRows(raw, 1).slice(1), v: shown ?? '', t: typeof shown === 'number' ? 'n' : 's' };

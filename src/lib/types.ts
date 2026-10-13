@@ -134,7 +134,19 @@ export interface Column {
   role?: ColRole;
   width: number;
   options?: string[];
+  /** worked out for every row, so nobody has to write or copy a formula */
+  calc?: ColumnCalc;
+  /** what the totals row under the column shows */
+  total?: ColumnTotal;
 }
+
+export type CalcOp = 'mul' | 'add' | 'sub' | 'div' | 'running' | 'balance';
+export interface ColumnCalc {
+  op: CalcOp;
+  a?: string; // column key
+  b?: string; // column key
+}
+export type ColumnTotal = 'none' | 'sum' | 'avg' | 'count' | 'min' | 'max' | 'net';
 
 export interface Sheet {
   id: string;

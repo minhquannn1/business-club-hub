@@ -328,6 +328,25 @@ function toBool(v: Scalar): boolean | FErr {
   return new FErr('#VALUE!');
 }
 
+const SHORTHAND: [RegExp, number][] = [
+  [/^(.*\d)\s*(k|nghìn|ngàn|ng)$/i, 1e3],
+  [/^(.*\d)\s*(tr|triệu|trieu|m|mil)$/i, 1e6],
+  [/^(.*\d)\s*(tỷ|tỉ|ty|ti|b|bn)$/i, 1e9],
+];
+
+/** What someone typed into an amount: everything parseLooseNumber reads, plus short forms like 50k, 1.5tr, 2m, 1 tỷ. */
+export function parseAmountInput(s: string): number | null {
+  const t = s.replace(/[₫đ$]|VND/gi, '').trim();
+  for (const [re, mult] of SHORTHAND) {
+    const m = re.exec(t);
+    if (m) {
+      const base = parseLooseNumber(m[1]);
+      return base === null ? null : Math.round(base * mult * 100) / 100;
+    }
+  }
+  return parseLooseNumber(s);
+}
+
 /** Accepts 1,250,000 / 1.250.000 / 1 250 000 ₫ / $12.50 / (500) / 12% */
 export function parseLooseNumber(s: string): number | null {
   let t = s.trim();
